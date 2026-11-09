@@ -1,0 +1,27 @@
+Disc/
+dl/
+iso/
+re/ghidra/
+# afgeleid van GameMenu.dat (decompiles, DFM-dump, strings): lokaal opnieuw te maken
+re/menu/out_*
+re/menu/dfm.json
+re/menu/dfm.err
+re/menu/strs.txt
+re/menu/*.log
+symbols/
+build/
+generated/
+out/
+userdata/
+*.log
+.DS_Store
+__pycache__/
+# afgeleide lijsten en decompiles uit GameMenu.dat (niet publiceren, lokaal opnieuw te maken)
+re/menu/forms/
+re/menu/l[0-9]*.txt
+re/menu/lt_enum.txt
+re/menu/vmt.txt
+re/menu/methods.txt
+re/menu/fields.json
+re/menu/gfx_addrs.txt
+re/menu/strings_by_form.txt
