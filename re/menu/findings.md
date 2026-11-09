@@ -42,3 +42,15 @@ Bron: stringvolgorde in GameMenu.dat (elke `SCORE_LAYOUT-x` staat direct na het 
 - `[SCORE_LAP]`/`[SCORE_TRACK]`: `track,naam` (0x4959fc), per regio van de track max 10; autotype Random(3) (teksten LT_CD_STANDARD/ATV/SPORT, enum 0x67-0x69 via 0x4a0a9c); tijd 3599990 ms of die van de vorige regel.
 - Tekenen: TCtrlScore (0x4846a8), font Hilde. Pagina 1 = layout A (0x4850f4), kolommen naam, score, positie+1, club (clubnaam via 0x49eef4), tijd hh:mm:ss (0x468018). Pagina 5 = layout E (0x486084): naam, track, autotype, tijd mm:ss:hh (0x4680c8), max 7 rijen (0x4865ac lap, 0x486844 track), in Pg5Page1.
 - Niet geverifieerd: tekstkleur (zwart aangenomen), verticale plaatsing in de rij (bovenkant), en of pagina 1 echt over hetzelfde lijntjesvlak valt (de kolommen van layout A lopen niet gelijk met de lijnen in de achtergrond).
+
+## Na de race (Ghidra, 9 nov 2026, Quick Race gebouwd)
+- Het origineel stopt vóór de race; de launcher draait de game en start het menu opnieuw met `/DEFAULT` (0x493f84; `/FIRSTTIME` = FS_FIRSTTIME). Dan leest 0x497b18 `game.ini` en kiest 0x494218 de flow.
+- Uitslag (0x497c54, 0x497ea8): `[PLAYER] Finished/Position (0 = eerste)/TrackTime/lapcount/lap_N_time` (beste ronde = laagste), `damage`, `TURBO_AMOUNT`, `Money`, `[UPGRADES] PLAYER`; `[OPTIONS] NrOpponents` (max 4) racers als `[RACERS] i=auto,positie,tijd` plus `country0i` = club van die racer. Vóór de race schrijft het menu `i=auto,x,0` en `country0i` (0x4988ec).
+- Winnaar (0x49a09c): speler als Position 0, anders de eerste racer met positie 0, anders "No winner!".
+- Flow (0x494218), speltype uit de spelerstaat (0 QR, 1 CH, 2 AD):
+  - QR: Finished -> FS_QRWIN (3), anders FS_QRESC (16). FS_QRLOOSE wordt nooit gekozen.
+  - CH: niet gefinisht -> FS_CHESC; gekwalificeerd = Position < grens uit een tabel per competitie en moeilijkheid (0x479e48). Niet de laatste race: gekwalificeerd of speltype 5 -> FS_CHQUALIFIED, anders FS_CHDISQUALIFIED. Laatste race: gekwalificeerd -> FS_CHWIN, anders DISQUALIFIED.
+  - AD: hetzelfde met FS_ADESC/ADQUALIFIED/ADDISQUALIFIED/ADWIN (tabel 0x479ca4, aantal races 0x479dfc).
+- TFrmQRResultWin (0x4c16ec): speler wint -> LT_MSG_QR_YOUWON + `Chaw8`; duel tegen de politie -> LT_MSG_QR_PS_WON met LT_ED_CHIEFPOLICE + `Chaw9`; anders LT_MSG_QR_PS_WON met de coureur van de club (0x49ee2c) + `ChaW<club>`. Foto in WinnerImage, BtnPrevious uit, btnTryAgain (0x4c168c) = dezelfde race opnieuw.
+- Aanname: in 0x4c16ec zijn `0x4a4400()==1` en `0x4a4128()==1` gelezen als "QR-type duel" en "tegenstander = politie". Niet hard bewezen (spelerrecord-offsets 0x27a/0x27d).
+- Niet geverifieerd: of de tekst in TxtContent (Hilde -27, vak 300x120) bij een lange naam ook in het origineel na drie regels wordt afgekapt.

@@ -6,6 +6,7 @@
 // previous/next buttons (base 0x4b893c, e.g. tracks 0x4c38d0). The texts are
 // TLanguageText enum values; the names are in re/menu/lt_enum.txt.
 #include <cstdio>
+#include <cstdlib>
 
 #include "engine/dfm.h"
 #include "er/screens.h"
@@ -232,6 +233,82 @@ class QRSelectOpponent : public ErScreen {
   Carousel car_;
 };
 
+// TFrmRace 0x4b4558: writes game.ini and leaves for the race (the original
+// quits; the launcher runs the game and restarts the menu with /DEFAULT).
+// The race is not ported yet. For tests ERACER_RACE_RESULT=<ini> stands in
+// for it: that file is read as the game.ini the race left behind.
+class Race : public ErScreen {
+ public:
+  Race(Game& g) : ErScreen(g, "TFrmRace") {}
+  void OnShow() override {
+    ErScreen::OnShow();
+    const char* fake = std::getenv("ERACER_RACE_RESULT");
+    if (!fake) {
+      SDL_Log("menu: the race is not ported yet");
+      return;
+    }
+    // After this show has finished (AfterRace shows another form).
+    app.After(0, [this, path = std::string(fake)] {
+      davi::IniFile ini;
+      ini.Load(path);
+      if (!game.race.Load(ini)) SDL_Log("menu: race result %s not found", path.c_str());
+      game.AfterRace();
+    }, this);
+  }
+};
+
+// TFrmQRResultWin 0x4c1584 / 0x4c16ec: who won, as a text in TxtContent and
+// a photo in WinnerImage. The player: LT_MSG_QR_YOUWON with Chaw8. A duel
+// against the police (QR type 1, opponent group 1): LT_MSG_QR_PS_WON with
+// J.B. Black and Chaw9. Else the winning racer: LT_MSG_QR_PS_WON with the
+// club's racer (0x49ee2c) and ChaW<club>. "Try again" races the same track
+// again; Next goes on to the track choice (FS_QRWIN step 1).
+class QRResultWin : public ErScreen {
+ public:
+  QRResultWin(Game& g) : ErScreen(g, "TFrmQRResultWin") {}
+  void OnShow() override {
+    ErScreen::OnShow();
+    form.SetEnabled("BtnPrevious", false);  // 0x4c1584
+    std::string text, pic;
+    int w = game.race.Winner();
+    if (w == 0) {
+      text = game.texts("LT_MSG_QR_YOUWON");  // text 0x31
+      pic = "Chaw8";
+    } else if (game.choices.qr_type == 1 && game.choices.opponent == 8) {
+      text = Name(game.texts("LT_MSG_QR_PS_WON"), game.texts("LT_ED_CHIEFPOLICE"));  // 0x32, 0x55
+      pic = "Chaw9";
+    } else if (w > 0) {
+      int club = game.race.racers[w - 1].club;
+      std::string who = club >= 0 && size_t(club) < game.data.clubs.size()
+                            ? game.texts(game.data.clubs[club].opponent) : "";
+      text = Name(game.texts("LT_MSG_QR_PS_WON"), who);
+      pic = Fmt2("ChaW%d", club);
+    }
+    form.SetCaption("TxtContent", text);
+    if (app.skin.assets) {
+      SDL_Surface* s = pic.empty() ? nullptr : app.skin.assets->Bitmap(pic);
+      if (!s && !pic.empty()) SDL_Log("menu: Could not find the qinner TGA! (%s)", pic.c_str());
+      form.SetPicture("WinnerImage", s);
+    }
+  }
+  void OnClick(davi::Widget& w) override {
+    if (Is(w, "btnTryAgain")) {  // 0x4c168c
+      game.flow.Set(game.choices.qr_type == 1 ? "FS_QRDUEL" : "FS_QRSTANDARD");
+      game.flow.SkipTo("TFrmRace");
+      game.ShowCurrent();
+      return;
+    }
+    ErScreen::OnClick(w);
+  }
+
+ private:
+  static std::string Name(std::string msg, const std::string& who) {
+    size_t p = msg.find("%s");
+    if (p != std::string::npos) msg.replace(p, 2, who);
+    return msg;
+  }
+};
+
 }  // namespace
 
 std::unique_ptr<davi::Screen> MakeQuickRaceScreen(Game& g, const std::string& key) {
@@ -240,6 +317,8 @@ std::unique_ptr<davi::Screen> MakeQuickRaceScreen(Game& g, const std::string& ke
   if (key == "tfrmqrselecttrack") return std::make_unique<QRSelectTrack>(g);
   if (key == "tfrmqrselectcar") return std::make_unique<QRSelectCar>(g);
   if (key == "tfrmqrselectopponent") return std::make_unique<QRSelectOpponent>(g);
+  if (key == "tfrmrace") return std::make_unique<Race>(g);
+  if (key == "tfrmqrresultwin") return std::make_unique<QRResultWin>(g);
   return nullptr;
 }
 

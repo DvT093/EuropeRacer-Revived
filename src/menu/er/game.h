@@ -12,6 +12,7 @@
 #include "engine/app.h"
 #include "er/flow.h"
 #include "er/gamedata.h"
+#include "er/race.h"
 
 namespace er {
 
@@ -73,6 +74,7 @@ class Game {
   Texts texts;
   davi::LayeredIni gamemenu;  // GameMenu.ini (+ mod layer)
   Choices choices;
+  RaceResult race;  // the last race's result (game.ini)
   std::string media_dir;  // Langdata/<lang>/Media (movies)
 
   // Shows the form of the current flow step.
@@ -83,6 +85,9 @@ class Game {
   // Switches the flow and shows its first form (or `step`).
   void Go(const std::string& state, int step = 0);
   void AskQuit();
+  // After the race (0x494218): reads `race` and switches to the result
+  // flow of the game type.
+  void AfterRace();
   void Sound(const std::string& sfx_id);  // SNDFX_OK etc.
   void PlayMusic(const std::string& id);  // SNDCB_NORMAL etc.
 

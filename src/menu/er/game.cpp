@@ -292,6 +292,19 @@ void Game::Previous() {
   if (flow.Previous()) ShowCurrent();
 }
 
+// TFrmMainWindow after a restart with /DEFAULT (0x494218). Quick Race:
+// finished -> FS_QRWIN (the winner, whoever it is), else FS_QRESC (back to
+// the track choice). FS_QRLOOSE is in GameMenu.ini but never chosen.
+void Game::AfterRace() {
+  if (choices.game_type == "QR" || choices.game_type.empty()) {
+    Go(race.finished ? "FS_QRWIN" : "FS_QRESC");
+    return;
+  }
+  // Championship/Adventure need the league tables (qualification limit per
+  // league and difficulty, races per league) and the standings: not built.
+  SDL_Log("menu: after-race flow for %s is not built yet", choices.game_type.c_str());
+}
+
 void Game::AskQuit() {
   davi::Screen* q = Get("TFrmReqQuit");
   if (!q->built) {
