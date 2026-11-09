@@ -7,6 +7,7 @@
 // LT_ED_<club> text (0x49ee2c).
 #include <algorithm>
 #include <cstdio>
+#include <ctime>
 
 #include "er/screens.h"
 #include "er/table.h"
@@ -29,6 +30,8 @@ std::string FillName(std::string msg, const std::string& who) {
   return msg;
 }
 
+int CarClass(Game& g);
+
 // The common part of the result forms (TBaseFrmWizard descendants).
 class ResultScreen : public ErScreen {
  public:
@@ -38,6 +41,7 @@ class ResultScreen : public ErScreen {
   void OnShow() override {
     ErScreen::OnShow();
     form.SetEnabled("BtnPrevious", false);
+    CheckRecords();
     if (logo_ && app.skin.assets) form.SetPicture("LogoImage", app.skin.assets->Bitmap(Fmt("CBLogo%d", game.choices.club)));
     Fill();
   }
@@ -57,6 +61,31 @@ class ResultScreen : public ErScreen {
   }
 
  protected:
+  // After-show hook (0x4c1bcc, 0x4be25c ...): a finished race may set the
+  // lap record (best lap) and the track record (race time) of its track.
+  // The original's popups for these are empty procedures: nothing shown.
+  void CheckRecords() {
+    if (!game.race.finished) return;
+    int track = game.choices.game_type == "QR" ? game.choices.track
+                                               : (game.CurrentRace() ? game.CurrentRace()->track : -1);
+    const Track* t = game.data.TrackById(track);
+    if (!t) return;
+    const char* regions[] = {"TC_WESTEUROPE", "TC_MIDDLEEUROPE", "TC_SOUTHEUROPE"};
+    int reg = 0;
+    while (reg < 3 && t->region != regions[reg]) reg++;
+    RecordSlot s;
+    s.track = track;
+    s.name = game.choices.player.substr(0, 8);
+    s.car_type = CarClass(game);
+    char b[16];
+    std::time_t now = std::time(nullptr);
+    std::strftime(b, sizeof b, "%Y-%m-%d", std::localtime(&now));
+    s.date = b;
+    s.time = uint32_t(game.race.best_lap);
+    game.scores.Record(0, reg, s);
+    s.time = uint32_t(game.race.tracktime);
+    game.scores.Record(1, reg, s);
+  }
   virtual void Fill() = 0;
   // The racer that won (position 0) as {name, photo}; empty if none.
   std::pair<std::string, std::string> RacerWinner() const {
@@ -225,7 +254,6 @@ class Standings : public ErScreen {
       if (League* l = game.CurrentLeague(); l && !l->NextRound(game.LeagueRaces())) {
         game.play_mode = 2;
         game.RebaseToPlay();
-        SDL_Log("menu: %s finished (the high score entry is not built yet)", game.choices.game_type.c_str());
       }
       game.Sound("SNDFX_OK");
       game.NextPlain();
@@ -333,10 +361,32 @@ class ResultWin : public ErScreen {
   void OnShow() override {
     ErScreen::OnShow();
     app.After(0, [this] {
-      SDL_Log("menu: high score entry for %s not built yet", game.choices.game_type.c_str());
-      if (League* l = game.CurrentLeague()) l->Reset();
-      game.play_mode = 0;
-      game.NextPlain();
+      League* l = game.CurrentLeague();
+      auto finish = [this, l] {
+        if (l) l->Reset();  // 0x4a4f38
+        game.play_mode = 0;
+        game.NextPlain();
+      };
+      int in = 0;
+      if (l) {
+        // 0x4bf288 / 0x4b7a94: the player's final standing into the table
+        // of the class (CH) or the adventure table.
+        const ClubStats& st = l->clubs[l->player_club];
+        ScoreRow r;
+        r.name = game.choices.player.substr(0, 8);
+        r.score = st.score, r.position = st.rank, r.club = l->player_club, r.time = uint32_t(st.time);
+        char b[16];
+        std::time_t now = std::time(nullptr);
+        std::strftime(b, sizeof b, "%Y-%m-%d", std::localtime(&now));
+        r.date = b;
+        int table = game.choices.game_type == "AD" ? 0 : 1 + std::clamp(game.choices.ch_type, 0, 2);
+        in = game.scores.Insert(table, r);
+      }
+      if (in) {  // 0x490c44: TFrmRequester with LT_MSG_GAMEHIGHSCORE, OK only
+        game.Message(game.texts("LT_MSG_GAMEHIGHSCORE"), finish);
+      } else {
+        finish();
+      }
     }, this);
   }
 };

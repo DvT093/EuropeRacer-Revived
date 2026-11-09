@@ -257,6 +257,11 @@ class Race : public ErScreen {
     std::string out = game.install.WritePath("Ini/game.ini");
     if (!ini.Save(out)) SDL_Log("menu: cannot write %s", out.c_str());
     const char* fake = std::getenv("ERACER_RACE_RESULT");
+    // Chase races qualify only with Position < 0 (see AfterRace); what the
+    // race writes there is unknown until it is ported, so tests give chase
+    // rounds their own file.
+    if (const char* chase = std::getenv("ERACER_RACE_RESULT_CHASE"); chase && CurrentRaceType(game) == kQrChase)
+      fake = chase;
     if (!fake) {
       SDL_Log("menu: the race is not ported yet");
       return;

@@ -103,6 +103,7 @@ int main(int argc, char** argv) {
   game.install = {davi::FindNoCase(game_dir, "Game"), red::Install::DefaultUserDir("eracer")};
   game.db_path = game.install.user_dir + "/menu_players.ini";
   game.db.Load(game.db_path);
+  game.scores_path = game.install.user_dir + "/menu_scores.ini";
   game.texts = texts;
   game.gamemenu.AddLayer(davi::FindNoCase(menu_dir, "GameMenu.ini"));
   if (!mods_dir.empty()) game.gamemenu.AddLayer(mods_dir + "/GameMenu.ini");
@@ -113,6 +114,7 @@ int main(int argc, char** argv) {
   app.on_button_down = [](davi::Widget&) {};
   if (!script.empty()) app.LoadScript(script);
   game.PlayMusic("SNDCB_NORMAL");
+  if (!game.scores.Load(game.scores_path)) game.scores.LoadDefaults(game.gamemenu, game.data);
   game.LoadProfile();
   game.Go("FS_DEFAULT");
   if (game.db.Empty()) game.NewFirstPlayer();

@@ -589,41 +589,19 @@ class Highscore : public ErScreen {
     int track = 0, car_type = 0, time = 0;
     std::string name;
   };
+  // From the score tables (er/scores.h), read on every show.
   void LoadScores() {
-    const davi::LayeredIni& ini = game.gamemenu;
-    const char* secs[] = {"SCORE_ADVENTURE", "SCORE_CC_STANDARD", "SCORE_CC_ATV", "SCORE_CC_SPORT"};
-    for (int t = 0; t < 4; t++)
-      for (int i = 0; i < 5; i++) {
-        std::vector<std::string> f = Fields(ini.Get(secs[t], std::to_string(i)));
-        Score s;
-        if (!f.empty()) s.name = f[0].substr(0, 7);  // string[7]
-        if (f.size() > 1) s.score = std::atoi(f[1].c_str());
-        if (f.size() > 2) s.position = std::atoi(f[2].c_str());
-        s.club = std::rand() % 7;
-        s.time = 0x05265818;
-        scores_[t].push_back(s);
-      }
-    const char* recs[] = {"SCORE_LAP", "SCORE_TRACK"};
-    const char* regions[] = {"TC_WESTEUROPE", "TC_MIDDLEEUROPE", "TC_SOUTHEUROPE"};
-    for (int t = 0; t < 2; t++) {
-      int n = ini.GetInt(recs[t], "Count");
-      for (int i = 0; i < n; i++) {
-        std::vector<std::string> f = Fields(ini.Get(recs[t], std::to_string(i)));
-        if (f.size() < 2) continue;
-        Record r;
-        r.track = std::atoi(f[0].c_str());
-        r.name = f[1].substr(0, 7);
-        r.car_type = std::rand() % 3;
-        const Track* tr = game.data.TrackById(r.track);
-        int reg = 0;
-        while (tr && reg < 3 && tr->region != regions[reg]) reg++;
-        if (reg >= 3) continue;
-        auto& list = records_[t][reg];
-        if (list.size() >= 10) continue;
-        r.time = list.empty() ? 3599990 : list.back().time;
-        list.push_back(r);
-      }
+    for (int t = 0; t < 4; t++) {
+      scores_[t].clear();
+      for (const ScoreRow& r : game.scores.tables[t])
+        scores_[t].push_back({r.name, r.score, r.position, r.club, int(r.time)});
     }
+    for (int k = 0; k < 2; k++)
+      for (int reg = 0; reg < 3; reg++) {
+        records_[k][reg].clear();
+        for (const RecordSlot& s : game.scores.records[k][reg])
+          records_[k][reg].push_back({s.track, s.car_type, int(s.time), s.name});
+      }
   }
 
  public:
@@ -633,7 +611,6 @@ class Highscore : public ErScreen {
     if (davi::Widget* r = form.Get("Pg5Region1")) r->checked = true;
     score_layout_.Load(game.gamemenu, game.texts, "SCORE_LAYOUT-A", {"NAME", "SCORE", "POSITION", "CLUB", "TIME"});
     record_layout_.Load(game.gamemenu, game.texts, "SCORE_LAYOUT-E", {"NAME", "TRACK", "CARTYPE", "TRACKTIME"});
-    LoadScores();
   }
   // The tab control (0x4875f0) lines its tabs up from the first one.
   void Layout() override {
@@ -643,6 +620,7 @@ class Highscore : public ErScreen {
   }
   void OnShow() override {
     ErScreen::OnShow();
+    LoadScores();
     SetPanel("PnPage1", false);
     SetPanel("PnPage5", false);
     tabs_.Show(*this, "BtnTab1");

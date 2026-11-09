@@ -405,6 +405,7 @@ void Game::SaveDb() {
   std::error_code ec;
   std::filesystem::create_directories(std::filesystem::path(db_path).parent_path(), ec);
   if (!db.Save(db_path)) SDL_Log("menu: cannot write %s", db_path.c_str());
+  if (!scores_path.empty() && !scores.Save(scores_path)) SDL_Log("menu: cannot write %s", scores_path.c_str());
 }
 
 League* Game::CurrentLeague() {
@@ -429,13 +430,18 @@ void Game::Ask(const std::string& msg, std::function<void()> yes) {
   });
 }
 
-void Game::Message(const std::string& msg) {
+void Game::Message(const std::string& msg, std::function<void()> closed) {
   davi::Screen* q = Get("TFrmRequester");
-  if (!q->built) return;
+  if (!q->built) {
+    if (closed) closed();
+    return;
+  }
   q->form.SetCaption("TxtContent", msg);
   if (davi::Widget* ok = q->form.Get("BtnOk")) ok->visible = true, ok->caption = texts("LT_OK");
   if (davi::Widget* no = q->form.Get("BtnCancel")) no->visible = false;
-  app.ShowModal(q);
+  app.ShowModal(q, [closed = std::move(closed)](int) {
+    if (closed) closed();
+  });
 }
 
 void Game::AskQuit() {

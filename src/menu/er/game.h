@@ -16,6 +16,7 @@
 #include "er/gamedata.h"
 #include "er/league.h"
 #include "er/profile.h"
+#include "er/scores.h"
 #include "er/race.h"
 
 namespace er {
@@ -85,6 +86,8 @@ class Game {
   // Players and options (menu_players.ini in install.user_dir).
   PlayerDb db;
   std::string db_path;
+  ScoreDb scores;  // menu_scores.ini next to db_path (else GameMenu.ini defaults)
+  std::string scores_path;
   // The current player's profile into choices/ch/ad, and back.
   void LoadProfile();
   void StoreProfile();
@@ -120,7 +123,7 @@ class Game {
   // when Yes is chosen.
   void Ask(const std::string& msg, std::function<void()> yes);
   // TFrmRequester with only OK (LT_MSG_NONAME and the like).
-  void Message(const std::string& msg);
+  void Message(const std::string& msg, std::function<void()> closed = nullptr);
   // Name entry: TFrmNameEntryNew (first player; Cancel ends the program) or
   // TFrmNameEntryDlg; `done` gets the name on OK.
   void AskName(bool first, std::function<void(const std::string&)> done);

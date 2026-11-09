@@ -75,3 +75,9 @@ Bron: stringvolgorde in GameMenu.dat (elke `SCORE_LAYOUT-x` staat direct na het 
 - Specificatie: `re/menu/garage_spec.md`. Vijf aanbiedingen, rondlopend, start op de upgrade: nitro 5 l (1000, turbo +50), nitro 1 l (250, +10), upgrade (15000/25000/35000, trap +1), reparatie 5 % (250), reparatie 10 % (1000). Kopen alleen als het iets doet en het geld er is; geen bevestiging.
 - Eigenschappenpaneel 0x4b7ce4: MpbCarProperties krijgt de maat van MensMal en ImgProperties (het briefje) komt op de plek van de balken; ImgClub = `car%.2da` van de clubauto. 7 rijen: upgrade/3, snelheid, acceleratie, grip, sterkte (op de huidige trap), schade, nitro.
 - Niet gebouwd: de waardetekst "%3d/%3d" naast de balken (plek onbekend).
+
+## High scores en records (9 nov 2026, gebouwd)
+- Specificatie: `re/menu/highscore_spec.md`. Gebouwd in `er/scores.cpp`, bewaard in `menu_scores.ini` (origineel: `GameMenu.HS`); zonder dat bestand de [SCORE_*]-standaardwaarden.
+- Na een gewonnen kampioenschap/avontuur: speler (naam max 8, punten, rang, club, totale tijd, datum) in de tabel van de klasse of het avontuur, gesorteerd zoals 0x495668; zit hij erin, dan TFrmRequester met LT_MSG_GAMEHIGHSCORE.
+- Na elke gefinishte race (niet na de winst): ronde- en trackrecord van die track overschrijven als de tijd echt lager is. Geen melding (de originele meldingen zijn lege procedures). Praag heeft geen recordplek, dus nooit een record.
+- Getest: met de originele regel voor achtervolgingsraces (positiegrens 0) is een kampioenschap niet te winnen met Position 0. Testen daarom met `ERACER_RACE_RESULT_CHASE=<ini met Position=-1>`. Wat de echte race schrijft, volgt bij de race-port.
