@@ -89,6 +89,10 @@ int main(int argc, char** argv) {
   davi::AppConfig cfg;
   cfg.title = texts("LT_APPTITLE");
   cfg.screenshot_path = shot;
+  // Tests: ERACER_MENU_UPGRADES=0 draws the original 800x600 look,
+  // ERACER_MENU_SIZE=WxH renders offscreen at that size (as Vakantie Racer).
+  if (const char* u = std::getenv("ERACER_MENU_UPGRADES")) cfg.upgraded = *u != '0';
+  if (const char* sz = std::getenv("ERACER_MENU_SIZE")) std::sscanf(sz, "%dx%d", &cfg.render_w, &cfg.render_h);
   if (!app.Init(cfg)) {
     std::fprintf(stderr, "eracer-menu: cannot open the window: %s\n", SDL_GetError());
     return 1;

@@ -73,7 +73,8 @@ const std::map<std::string, std::string>& Backgrounds() {
 
 void RegisterSkin(davi::Skin& skin, Texts& texts) {
   davi::Assets* assets = skin.assets;
-  skin.def_link = [assets](const std::string& def, int state) -> std::string {
+  skin.def_link = [assets](const std::string& key, int state) -> std::string {
+    std::string def = key.substr(key.find('.') + 1);  // "TData.gdfBtnT1" -> "gdfBtnT1"
     auto it = Defs().find(davi::Lower(def));
     if (it == Defs().end()) return "";
     std::string p = it->second.prefix;
