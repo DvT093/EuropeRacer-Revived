@@ -59,7 +59,7 @@ const std::map<std::string, std::string>& Backgrounds() {
       {"tfrmchresultqualified", "BgQual"},   {"tfrmchresultranking", "BGStdna"},
       {"tfrmchselectclub", "BgAdvC"},        {"tfrmchselectdifficulty", "BgQR2"},
       {"tfrmchselecttype", "BgE"},           {"tfrmchshowstatus", "BgAdvS"},
-      {"tfrmchgarage", "BgGar"},             {"tfrmqrresultwin", "BgQual"},
+      {"tfrmchgarage", "BgGar"}, {"tfrmchresultwin", "zwart0"}, {"tfrmadresultwin", "zwart0"},             {"tfrmqrresultwin", "BgQual"},
       {"tfrmqrselectcar", "BgQRC"},          {"tfrmqrselectdifficulty", "BgQR2"},
       {"tfrmqrselectopponent", "BgQRC2"},    {"tfrmqrselecttrack", "BgQRC2"},
       {"tfrmqrselecttype", "BgE"},           {"tfrmqrresultloose", "BGQRR"},

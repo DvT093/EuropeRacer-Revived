@@ -316,6 +316,24 @@ class ShowStatus : public ErScreen {
   ScoreTable table_;
 };
 
+// TFrmCH/ADResultWin (0x4bf408): a black form (zwart0) that enters the
+// result in the high score table (0x4bf288: [SCORE_CC_<class>] /
+// [SCORE_ADVENTURE] with a popup when it gets in, 0x490c44; not built yet),
+// starts the league over (0x4a4f38) and goes on to the main menu.
+class ResultWin : public ErScreen {
+ public:
+  ResultWin(Game& g, const std::string& cls) : ErScreen(g, cls) {}
+  void OnShow() override {
+    ErScreen::OnShow();
+    app.After(0, [this] {
+      SDL_Log("menu: high score entry for %s not built yet", game.choices.game_type.c_str());
+      if (League* l = game.CurrentLeague()) l->Reset();
+      game.play_mode = 0;
+      game.NextPlain();
+    }, this);
+  }
+};
+
 }  // namespace
 
 std::unique_ptr<davi::Screen> MakeResultScreen(Game& g, const std::string& key) {
@@ -328,6 +346,8 @@ std::unique_ptr<davi::Screen> MakeResultScreen(Game& g, const std::string& key) 
   if (key == "tfrmadresults") return std::make_unique<RaceResults>(g, "TFrmADResults");
   if (key == "tfrmchresultranking") return std::make_unique<Standings>(g, "TFrmCHResultRanking");
   if (key == "tfrmadresultranking") return std::make_unique<Standings>(g, "TFrmADResultRanking");
+  if (key == "tfrmchresultwin") return std::make_unique<ResultWin>(g, "TFrmCHResultWin");
+  if (key == "tfrmadresultwin") return std::make_unique<ResultWin>(g, "TFrmADResultWin");
   if (key == "tfrmchshowstatus") return std::make_unique<ShowStatus>(g, "TFrmCHShowStatus");
   if (key == "tfrmadshowstatus") return std::make_unique<ShowStatus>(g, "TFrmADShowStatus");
   return nullptr;
