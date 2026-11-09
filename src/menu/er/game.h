@@ -15,6 +15,7 @@
 #include "launcher/race_launcher.h"
 #include "er/gamedata.h"
 #include "er/league.h"
+#include "er/profile.h"
 #include "er/race.h"
 
 namespace er {
@@ -80,7 +81,15 @@ class Game {
   Choices choices;
   RaceResult race;  // the last race's result (game.ini)
   bool race_counted = false;  // race already added to the standings
-  League ch[3], ad;  // championship per car class, adventure
+  League ch[3], ad;  // championship per car class, adventure (current player)
+  // Players and options (menu_players.ini in install.user_dir).
+  PlayerDb db;
+  std::string db_path;
+  // The current player's profile into choices/ch/ad, and back.
+  void LoadProfile();
+  void StoreProfile();
+  // StoreProfile + write the file (the original saves at exit, 0x4a3244).
+  void SaveDb();
   // The standings being played (CH: the chosen class; AD); nullptr for QR.
   League* CurrentLeague();
   // Races in the current league: CH 5 per class, AD all [ADVENTURE] rows.
@@ -110,6 +119,13 @@ class Game {
   // TFrmRequester with Yes/No (e.g. 0x4910a0 for "restart?"); `yes` runs
   // when Yes is chosen.
   void Ask(const std::string& msg, std::function<void()> yes);
+  // TFrmRequester with only OK (LT_MSG_NONAME and the like).
+  void Message(const std::string& msg);
+  // Name entry: TFrmNameEntryNew (first player; Cancel ends the program) or
+  // TFrmNameEntryDlg; `done` gets the name on OK.
+  void AskName(bool first, std::function<void(const std::string&)> done);
+  // 0x4ab76c: no players yet -> the first player's name.
+  void NewFirstPlayer();
   // After the race (0x494218): reads `race` and switches to the result
   // flow of the game type.
   void AfterRace();

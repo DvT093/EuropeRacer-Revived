@@ -101,6 +101,8 @@ int main(int argc, char** argv) {
   er::Game game(app);
   if (!lang_dir.empty()) game.media_dir = lang_dir + "/Media";
   game.install = {davi::FindNoCase(game_dir, "Game"), red::Install::DefaultUserDir("eracer")};
+  game.db_path = game.install.user_dir + "/menu_players.ini";
+  game.db.Load(game.db_path);
   game.texts = texts;
   game.gamemenu.AddLayer(davi::FindNoCase(menu_dir, "GameMenu.ini"));
   if (!mods_dir.empty()) game.gamemenu.AddLayer(mods_dir + "/GameMenu.ini");
@@ -111,6 +113,10 @@ int main(int argc, char** argv) {
   app.on_button_down = [](davi::Widget&) {};
   if (!script.empty()) app.LoadScript(script);
   game.PlayMusic("SNDCB_NORMAL");
+  game.LoadProfile();
   game.Go("FS_DEFAULT");
-  return app.Run();
+  if (game.db.Empty()) game.NewFirstPlayer();
+  int rc = app.Run();
+  game.SaveDb();
+  return rc;
 }

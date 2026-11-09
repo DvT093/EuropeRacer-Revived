@@ -1,6 +1,7 @@
 #include "er/game.h"
 
 #include <algorithm>
+#include <filesystem>
 #include <cstring>
 
 #include "engine/dfm.h"
@@ -33,6 +34,11 @@ class MainWindow : public ErScreen {
         x += b->r.w + 2;
       }
   }
+  int GameTypeIndex() const { return game.choices.game_type == "CH" ? 1 : game.choices.game_type == "AD" ? 2 : 0; }
+  void OnShow() override {
+    ErScreen::OnShow();
+    SetRadio(GameTypeIndex());
+  }
   MainWindow(Game& g) : ErScreen(g, "TFrmMainWindow") {
     // 0x4ab8bc: an info text per game type (texts 0xd8-0xda).
     BindRadios({"LT_INF_GT_QUICKRACE", "LT_INF_GT_CHAMPIONSHIP", "LT_INF_GT_ADVENTURE"}, {});
@@ -44,15 +50,11 @@ class MainWindow : public ErScreen {
       std::string type = form.W("BtnRadio2").checked ? "CH" : form.W("BtnRadio3").checked ? "AD" : "QR";
       game.choices.game_type = type;
       game.play_mode = 1;
-      // A new championship/adventure: every standing back to the start
-      // (0x4a2be8). There are no saved games yet to continue.
-      if (type != "QR") {
-        for (auto& l : game.ch) l.Reset();
-        game.ad.Reset();
-      }
-      // A new championship/adventure until saved games exist (FS_CHSTANDARD /
-      // FS_ADSTANDARD continue one).
-      game.Go(type == "QR" ? "FS_QRSTANDARD" : type == "CH" ? "FS_CHNEW" : "FS_ADNEW", 1);
+      // 0x4940ac: a championship/adventure that has started continues
+      // (FS_xxSTANDARD), else a new one (FS_xxNEW).
+      League* l = game.CurrentLeague();
+      game.Go(type == "QR" ? "FS_QRSTANDARD" : "FS_" + type + (l && !l->is_new ? "STANDARD" : "NEW"), 1);
+      game.SaveDb();
       return;
     }
     // BtnOptionClick 0x4ab9e8, BtnPlayerListClick 0x4aba2c, BtnInternetClick
@@ -63,7 +65,8 @@ class MainWindow : public ErScreen {
       if (Is(w, d[0])) {
         game.Sound("SNDFX_OK");
         davi::Screen* s = game.Get(d[1]);
-        if (s->built) app.ShowModal(s);
+        // After the player list, the radios follow the current player.
+        if (s->built) app.ShowModal(s, [this](int) { SetRadio(GameTypeIndex()); });
         return;
       }
     ErScreen::OnClick(w);
@@ -272,7 +275,8 @@ davi::Screen* Game::Get(const std::string& cls) {
   std::unique_ptr<davi::Screen> s;
   if (key == "tfrmmainwindow") s = std::make_unique<MainWindow>(*this);
   else if (!(s = MakeQuickRaceScreen(*this, key)) && !(s = MakeChampionshipScreen(*this, key)) &&
-           !(s = MakeDialogScreen(*this, key)) && !(s = MakeResultScreen(*this, key)))
+           !(s = MakeDialogScreen(*this, key)) && !(s = MakeResultScreen(*this, key)) &&
+           !(s = MakePlayerScreen(*this, key)))
     s = std::make_unique<ErScreen>(*this, cls);
   return (screens_[key] = std::move(s)).get();
 }
@@ -365,6 +369,44 @@ const RaceEntry* Game::CurrentRace() const {
   return row < data.championship.size() ? &data.championship[row] : nullptr;
 }
 
+void Game::LoadProfile() {
+  Profile& p = db.Current();
+  choices.player = p.used ? p.name : "";
+  static const char* kTypes[] = {"QR", "CH", "AD"};
+  choices.game_type = kTypes[p.game_type < 0 || p.game_type > 2 ? 0 : p.game_type];
+  choices.qr_type = p.qr_type;
+  choices.difficulty = p.game_type == 0 ? p.qr_difficulty : p.ch_difficulty;
+  choices.track = p.qr_track;
+  choices.car = p.game_type == 2 ? p.ad_car : p.qr_car;
+  choices.opponent = p.qr_opponent;
+  choices.club = p.club;
+  choices.ch_type = p.ch_class;
+  for (int i = 0; i < 3; i++) ch[i] = p.ch[i];
+  ad = p.ad;
+}
+
+void Game::StoreProfile() {
+  Profile& p = db.Current();
+  if (!p.used) return;
+  p.game_type = choices.game_type == "CH" ? 1 : choices.game_type == "AD" ? 2 : 0;
+  p.qr_type = choices.qr_type;
+  (p.game_type == 0 ? p.qr_difficulty : p.ch_difficulty) = choices.difficulty;
+  if (p.game_type == 0) p.qr_track = choices.track, p.qr_car = choices.car, p.qr_opponent = choices.opponent;
+  if (p.game_type == 2) p.ad_car = choices.car;
+  p.club = choices.club;
+  p.ch_class = choices.ch_type;
+  for (int i = 0; i < 3; i++) p.ch[i] = ch[i];
+  p.ad = ad;
+}
+
+void Game::SaveDb() {
+  StoreProfile();
+  if (db_path.empty()) return;
+  std::error_code ec;
+  std::filesystem::create_directories(std::filesystem::path(db_path).parent_path(), ec);
+  if (!db.Save(db_path)) SDL_Log("menu: cannot write %s", db_path.c_str());
+}
+
 League* Game::CurrentLeague() {
   if (choices.game_type == "AD") return &ad;
   if (choices.game_type == "CH") return &ch[std::clamp(choices.ch_type, 0, 2)];
@@ -385,6 +427,15 @@ void Game::Ask(const std::string& msg, std::function<void()> yes) {
   app.ShowModal(q, [yes = std::move(yes)](int r) {
     if (r == 1) yes();
   });
+}
+
+void Game::Message(const std::string& msg) {
+  davi::Screen* q = Get("TFrmRequester");
+  if (!q->built) return;
+  q->form.SetCaption("TxtContent", msg);
+  if (davi::Widget* ok = q->form.Get("BtnOk")) ok->visible = true, ok->caption = texts("LT_OK");
+  if (davi::Widget* no = q->form.Get("BtnCancel")) no->visible = false;
+  app.ShowModal(q);
 }
 
 void Game::AskQuit() {
