@@ -185,7 +185,7 @@ void WriteGameIni(Game& g, davi::IniFile& ini) {
   static const int kBonus[6] = {0x0d, 0x0d, 0x05, 0x0d, 0x0f, 0x0f};  // repair 1, money 2, turbo 4, invulnerable 8
   SetInt(ini, "OPTIONS", "Traffic", kTraffic[type]);
   SetInt(ini, "OPTIONS", "Opponents", kOpp[type]);
-  SetInt(ini, "OPTIONS", "Pedestrians", 1);  // forced 0 by an option (+0x379c) not built yet
+  SetInt(ini, "OPTIONS", "Pedestrians", g.db.options.hide_pedestrians ? 0 : 1);
   SetInt(ini, "OPTIONS", "ghostcar", kGhost[type]);
   SetInt(ini, "BONUS", "RepairBonus", (kBonus[type] & 1) != 0);
   SetInt(ini, "BONUS", "MoneyBonus", (kBonus[type] & 2) != 0);
@@ -200,6 +200,34 @@ void WriteGameIni(Game& g, davi::IniFile& ini) {
     q = type == kQrChase ? Msh(e->qualify[d] * 1000) : std::to_string(e->qualify[d]);
   }
   ini.Set("GameSim", "Qualify", q);
+
+  // [InputGeneral] (0x49a2d0). Sensitivity / force feedback per device and
+  // the key bindings are not kept yet: sensitivity 50 and feedback off are
+  // the original's defaults; [InputKeyBinds] keeps the template's keys.
+  const Profile& p = g.db.Current();
+  const GlobalOptions& o = g.db.options;
+  static const char* kDevices[4] = {"Keyboard", "DigitalController", "AnalogController", "AnalogController"};
+  ini.Set("InputGeneral", "InputDevice", kDevices[std::clamp(p.input_device, 0, 3)]);
+  SetInt(ini, "InputGeneral", "Sensitivity", 50);
+  SetInt(ini, "InputGeneral", "ForceFeedback", 0);
+  // Resolution and [GFX OPTIONS] (0x499894).
+  static const int kRes[3] = {3, 4, 7};
+  SetInt(ini, "OPTIONS", "Resolution", kRes[std::clamp(o.resolution, 0, 2)]);
+  SetInt(ini, "GFX OPTIONS", "mipmapping", o.mipmapping);
+  SetInt(ini, "GFX OPTIONS", "gamma", o.brightness);
+  SetInt(ini, "GFX OPTIONS", "particles", 1 - o.hide_particles);
+  SetInt(ini, "GFX OPTIONS", "FILTER", o.filter ? 2 : 0);
+  SetInt(ini, "GFX OPTIONS", "alpha_blending", o.transparency);
+  SetInt(ini, "GFX OPTIONS", "WaitVBL", o.wait_vbl);
+  // [Sound] (0x499c0c). [DIRECTX] stays as the template has it: there is
+  // no DirectX device list natively.
+  SetInt(ini, "Sound", "MUSICVOLUME", p.music);
+  SetInt(ini, "Sound", "SFXVOLUME", p.sfx);
+  SetInt(ini, "Sound", "POLICEVOLUME", p.voices);
+  SetInt(ini, "Sound", "hardware", o.speakers);
+  SetInt(ini, "Sound", "system", o.sound_system);
+  SetInt(ini, "Sound", "SoundQUality", o.sound_quality);
+  SetInt(ini, "Sound", "ON", o.sound_on);
 }
 
 }  // namespace er

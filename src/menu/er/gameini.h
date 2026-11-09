@@ -2,9 +2,9 @@
 // writer 0x4981c4 in GameMenu.dat). Key by key in re/menu/gameini_spec.md.
 //
 // Written: [PLAYER], [ETAPPE], [UPGRADES], [OPTIONS] race keys, [RACERS],
-// [BONUS], [GameSim] Qualify. Not yet: [InputGeneral]/[InputKeyBinds],
-// [GFX OPTIONS], Resolution, [DIRECTX], [Sound] (the options screen does
-// not keep its settings yet), so the template's values stay.
+// [BONUS], [GameSim] Qualify, [InputGeneral] device, Resolution,
+// [GFX OPTIONS], [Sound] from the options. Not yet: [InputKeyBinds],
+// per-device sensitivity/force feedback, [DIRECTX] (template values stay).
 #pragma once
 
 #include "engine/ini.h"

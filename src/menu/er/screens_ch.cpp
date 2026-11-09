@@ -419,41 +419,95 @@ struct Tabs {
   }
 };
 
+// Option controls bound to fields of the player database (spec 4 of
+// re/menu/players_options_spec.md): radio groups (value = radio index),
+// checkboxes (0/1) and sliders (0..100). Shown from the fields; OK takes
+// the controls back, Cancel leaves the fields (the original writes at once
+// and restores a copy on Cancel: same result).
+struct OptionBinding {
+  struct Radios {
+    std::vector<std::string> names;
+    int* field;
+  };
+  struct Single {
+    std::string name;
+    int* field;
+  };
+  std::vector<Radios> radios;
+  std::vector<Single> checks, sliders;
+  void Show(davi::Form& f) const {
+    for (auto& r : radios)
+      for (size_t i = 0; i < r.names.size(); i++)
+        if (davi::Widget* w = f.Get(r.names[i])) w->checked = int(i) == *r.field;
+    for (auto& c : checks)
+      if (davi::Widget* w = f.Get(c.name)) w->checked = *c.field != 0;
+    for (auto& c : sliders)
+      if (davi::Widget* w = f.Get(c.name)) w->pos = *c.field;
+  }
+  void Take(davi::Form& f) const {
+    for (auto& r : radios)
+      for (size_t i = 0; i < r.names.size(); i++)
+        if (davi::Widget* w = f.Get(r.names[i]); w && w->checked) *r.field = int(i);
+    for (auto& c : checks)
+      if (davi::Widget* w = f.Get(c.name)) *c.field = w->checked ? 1 : 0;
+    for (auto& c : sliders)
+      if (davi::Widget* w = f.Get(c.name)) *c.field = std::clamp(w->pos, 0, 100);
+  }
+};
+
 // TFrmOptions 0x48c904: four tabs (controls, resolution, sound, game
-// speed), one panel each. Pictures set in code: opct<n> per control type,
-// OpRe<n> per resolution, "sld" as the slider track (needle gdfOpNeedle).
-// The values themselves are not read from or written to game.ini yet.
+// speed = the two "hide" checkboxes), one panel each. Pictures set in
+// code: opct<n> per control type, OpRe<n> per resolution, "sld" as the
+// slider track (needle gdfOpNeedle). The advanced buttons open
+// TfrmOptionsSound / TFrmOptionsDisplay.
 class Options : public ErScreen {
  public:
   Options(Game& g) : ErScreen(g, "TFrmOptions") {
     tabs_.tabs = {{"btnControls", "pnlControls"}, {"btnResolution", "pnlResolution"},
                   {"btnSound", "pnlSound"}, {"btnGameSpeed", "pnlSpeed"}};
     for (const char* s : {"sliMusicVolume", "sliSoundEffects", "sliVoices"})
-      if (davi::Widget* w = form.Get(s); w && app.skin.assets) {
-        w->picture = app.skin.assets->Bitmap("sld");
-        w->pos = 75;
-      }
-    Check("btnKeyboard");
-    Check("btnMedRes");
-    Pictures();
+      if (davi::Widget* w = form.Get(s); w && app.skin.assets) w->picture = app.skin.assets->Bitmap("sld");
   }
   void OnShow() override {
     ErScreen::OnShow();
+    Profile& p = game.db.Current();
+    GlobalOptions& o = game.db.options;
+    bind_ = {};
+    bind_.radios = {{{"btnKeyboard", "btnGamePad", "btnJoystick", "btnSteeringWheel"}, &p.input_device},
+                    {{"btnLowRes", "btnMedRes", "btnHighRes"}, &o.resolution}};
+    bind_.checks = {{"chkShowControlsAtStartRace", &p.show_controls},
+                    {"chkHidePedestrians", &o.hide_pedestrians},
+                    {"chkHideParticles", &o.hide_particles}};
+    bind_.sliders = {{"sliMusicVolume", &p.music}, {"sliSoundEffects", &p.sfx}, {"sliVoices", &p.voices}};
+    // 0x48cda8: without a joystick only the keyboard can be chosen.
+    int n = 0;
+    SDL_free(SDL_GetJoysticks(&n));
+    if (n == 0) p.input_device = 0;
+    for (const char* b : {"btnGamePad", "btnJoystick", "btnSteeringWheel"}) form.SetEnabled(b, n > 0);
+    bind_.Show(form);
     tabs_.Show(*this, "btnControls");
+    Pictures();
   }
   void OnClick(davi::Widget& w) override {
     if (tabs_.Click(*this, w)) {
       game.Sound("SNDFX_RADIO");
       return;
     }
+    if (IsW(w, "btnSoundSettings") || IsW(w, "btnDisplaySettings")) {
+      game.Sound("SNDFX_OK");
+      davi::Screen* s = game.Get(IsW(w, "btnSoundSettings") ? "TfrmOptionsSound" : "TFrmOptionsDisplay");
+      if (s->built) app.ShowModal(s);
+      return;
+    }
+    if (IsW(w, "BtnOk")) {
+      bind_.Take(form);
+      game.SaveDb();
+    }
     ErScreen::OnClick(w);
     Pictures();
   }
 
  private:
-  void Check(const char* name) {
-    if (davi::Widget* w = form.Get(name)) w->checked = true;
-  }
   void Pictures() {
     if (!app.skin.assets) return;
     const char* ctl[] = {"btnKeyboard", "btnGamePad", "btnJoystick", "btnSteeringWheel"};
@@ -466,6 +520,40 @@ class Options : public ErScreen {
         form.SetPicture("imgResolution", app.skin.assets->Bitmap(Fmt("OpRe%d", i)));
   }
   Tabs tabs_;
+  OptionBinding bind_;
+};
+
+// TfrmOptionsSound / TFrmOptionsDisplay (4.3): the advanced settings, all
+// global options.
+class OptionsAdvanced : public ErScreen {
+ public:
+  OptionsAdvanced(Game& g, const std::string& cls, bool sound) : ErScreen(g, cls), sound_(sound) {}
+  void OnShow() override {
+    ErScreen::OnShow();
+    GlobalOptions& o = game.db.options;
+    bind_ = {};
+    if (sound_) {
+      bind_.radios = {{{"btnTwoSpeakers", "btnFourSpeakers", "btnHeadphones"}, &o.speakers},
+                      {{"btnNormal", "btnEAX", "btnA3D"}, &o.sound_system},
+                      {{"btnLow", "btnMed", "btnHigh"}, &o.sound_quality}};
+      bind_.checks = {{"chkSoundEnabled", &o.sound_on}};
+    } else {
+      bind_.radios = {{{"btnLight", "btnDark"}, &o.brightness}, {{"btnMinimal", "btnNormal", "btnMaximal"}, &o.texture_detail}};
+      bind_.checks = {{"chkMIPMapping", &o.mipmapping},
+                      {"chkBilinearFiltering", &o.filter},
+                      {"chkTransparancy", &o.transparency},
+                      {"chkSynchronize", &o.wait_vbl}};
+    }
+    bind_.Show(form);
+  }
+  void OnClick(davi::Widget& w) override {
+    if (IsW(w, "BtnOk")) bind_.Take(form);
+    ErScreen::OnClick(w);
+  }
+
+ private:
+  bool sound_;
+  OptionBinding bind_;
 };
 
 // TFrmHighscore 0x488864: tabs for the Adventure and the three
@@ -609,6 +697,8 @@ class Highscore : public ErScreen {
 
 std::unique_ptr<davi::Screen> MakeDialogScreen(Game& g, const std::string& key) {
   if (key == "tfrmoptions") return std::make_unique<Options>(g);
+  if (key == "tfrmoptionssound") return std::make_unique<OptionsAdvanced>(g, "TfrmOptionsSound", true);
+  if (key == "tfrmoptionsdisplay") return std::make_unique<OptionsAdvanced>(g, "TFrmOptionsDisplay", false);
   if (key == "tfrmhighscore") return std::make_unique<Highscore>(g);
   return nullptr;
 }
