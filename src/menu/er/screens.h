@@ -34,5 +34,6 @@ struct Carousel {
 std::unique_ptr<davi::Screen> MakeQuickRaceScreen(Game& g, const std::string& key);
 std::unique_ptr<davi::Screen> MakeChampionshipScreen(Game& g, const std::string& key);
 std::unique_ptr<davi::Screen> MakeDialogScreen(Game& g, const std::string& key);
+std::unique_ptr<davi::Screen> MakeResultScreen(Game& g, const std::string& key);
 
 }  // namespace er

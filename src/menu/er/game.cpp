@@ -1,5 +1,6 @@
 #include "er/game.h"
 
+#include <algorithm>
 #include <cstring>
 
 #include "engine/dfm.h"
@@ -263,7 +264,7 @@ davi::Screen* Game::Get(const std::string& cls) {
   std::unique_ptr<davi::Screen> s;
   if (key == "tfrmmainwindow") s = std::make_unique<MainWindow>(*this);
   else if (!(s = MakeQuickRaceScreen(*this, key)) && !(s = MakeChampionshipScreen(*this, key)) &&
-           !(s = MakeDialogScreen(*this, key)))
+           !(s = MakeDialogScreen(*this, key)) && !(s = MakeResultScreen(*this, key)))
     s = std::make_unique<ErScreen>(*this, cls);
   return (screens_[key] = std::move(s)).get();
 }
@@ -300,9 +301,30 @@ void Game::AfterRace() {
     Go(race.finished ? "FS_QRWIN" : "FS_QRESC");
     return;
   }
-  // Championship/Adventure need the league tables (qualification limit per
-  // league and difficulty, races per league) and the standings: not built.
-  SDL_Log("menu: after-race flow for %s is not built yet", choices.game_type.c_str());
+  // Championship (CH) / Adventure (AD). Qualified: finished and Position
+  // below the race's Qualify-<difficulty> ([CHAMPIONSHIP]/[ADVENTURE]).
+  // The last race of the class (CH: 5 per class) or of the adventure (all
+  // rows) ends in FS_xxWIN when qualified. 0x494218 also lets game type 5
+  // through as qualified; what that type is, is not known (never set here).
+  const std::string p = choices.game_type == "AD" ? "FS_AD" : "FS_CH";
+  if (!race.finished) {
+    Go(p + "ESC");
+    return;
+  }
+  const RaceEntry* e = CurrentRace();
+  int d = std::clamp(choices.difficulty, 0, 2);
+  bool qualified = e && race.position < e->qualify[d];
+  int races = choices.game_type == "AD" ? int(data.adventure.size()) : 5;
+  bool last = choices.round + 1 >= races;
+  if (!qualified) Go(p + "DISQUALIFIED");
+  else Go(p + (last ? "WIN" : "QUALIFIED"));
+}
+
+const RaceEntry* Game::CurrentRace() const {
+  if (choices.game_type == "AD") return size_t(choices.round) < data.adventure.size() ? &data.adventure[choices.round] : nullptr;
+  if (choices.game_type != "CH") return nullptr;
+  size_t row = size_t(choices.ch_type) * 5 + size_t(choices.round);
+  return row < data.championship.size() ? &data.championship[row] : nullptr;
 }
 
 void Game::AskQuit() {

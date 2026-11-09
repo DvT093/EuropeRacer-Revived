@@ -23,11 +23,7 @@ const char* kClasses[] = {"CT_STANDARD", "CT_ATV", "CT_SPORT"};
 
 // The race of the current round: [CHAMPIONSHIP] row type*5 + round, or
 // [ADVENTURE] row round.
-const RaceEntry* CurrentRace(Game& g) {
-  const auto& list = g.choices.game_type == "AD" ? g.data.adventure : g.data.championship;
-  size_t row = g.choices.game_type == "AD" ? g.choices.round : g.choices.ch_type * 5 + g.choices.round;
-  return row < list.size() ? &list[row] : nullptr;
-}
+const RaceEntry* CurrentRace(Game& g) { return g.CurrentRace(); }
 
 // TFrmPlayMovie: a full-screen movie from Langdata/<lang>/Media, then the
 // next step of the flow (click or a key skips it). Which movie belongs to

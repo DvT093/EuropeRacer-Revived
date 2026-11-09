@@ -88,6 +88,9 @@ class Game {
   // After the race (0x494218): reads `race` and switches to the result
   // flow of the game type.
   void AfterRace();
+  // The race of the current round: [CHAMPIONSHIP] row type*5 + round, or
+  // [ADVENTURE] row round (nullptr for Quick Race or past the end).
+  const RaceEntry* CurrentRace() const;
   void Sound(const std::string& sfx_id);  // SNDFX_OK etc.
   void PlayMusic(const std::string& id);  // SNDCB_NORMAL etc.
 
