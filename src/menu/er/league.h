@@ -4,6 +4,8 @@
 // +0x2c + class*0x1ec, AD: +0x7e0); offsets below are within that record.
 #pragma once
 
+#include <vector>
+
 #include "er/race.h"
 
 namespace er {
@@ -35,6 +37,11 @@ struct League {
   void AddResult(const RaceResult& r, int car_class);
   // 0x4beb50: player and opponents by score, highest first.
   void Rank();
+  // 0x4bea24: an opponent's car gets upgrade stage k (1..3) once the round
+  // reaches its club's k-th "upgrade after round" for the class
+  // ([CHUPGRADEPATH]/[ADUPGRADEPATH] row of the club: 3 rounds per class).
+  // `path(club)` gives that row (9 numbers) or nullptr.
+  void UpgradeOpponents(int car_class, const std::vector<int>* (*path)(void*, int), void* ctx);
   // The club in front (rank 0).
   int Leader() const;
   // 0x4a5054: to the next race if there is one; false at the end.

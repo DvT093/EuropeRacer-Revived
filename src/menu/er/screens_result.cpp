@@ -205,6 +205,13 @@ class Standings : public ErScreen {
     if (!game.race_counted) {
       l->AddResult(game.race, CarClass(game));
       l->Rank();
+      l->UpgradeOpponents(CarClass(game), [](void* ctx, int club) -> const std::vector<int>* {
+        Game& g = *static_cast<Game*>(ctx);
+        if (size_t(club) >= g.data.clubs.size()) return nullptr;
+        const auto& m = g.choices.game_type == "AD" ? g.data.ad_upgrades : g.data.ch_upgrades;
+        auto it = m.find(g.data.clubs[club].type);
+        return it == m.end() ? nullptr : &it->second;
+      }, &game);
       game.race_counted = true;
     }
     if (!app.skin.assets) return;

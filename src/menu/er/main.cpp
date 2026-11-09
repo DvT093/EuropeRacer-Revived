@@ -100,6 +100,7 @@ int main(int argc, char** argv) {
 
   er::Game game(app);
   if (!lang_dir.empty()) game.media_dir = lang_dir + "/Media";
+  game.install = {davi::FindNoCase(game_dir, "Game"), red::Install::DefaultUserDir("eracer")};
   game.texts = texts;
   game.gamemenu.AddLayer(davi::FindNoCase(menu_dir, "GameMenu.ini"));
   if (!mods_dir.empty()) game.gamemenu.AddLayer(mods_dir + "/GameMenu.ini");

@@ -62,6 +62,20 @@ void League::Rank() {
   for (size_t i = 0; i < order.size(); i++) clubs[order[i]].rank = int(i);
 }
 
+void League::UpgradeOpponents(int car_class, const std::vector<int>* (*path)(void*, int), void* ctx) {
+  if (car_class < 0 || car_class > 2) return;
+  for (int c : opponents) {
+    if (c == player_club) continue;
+    const std::vector<int>* p = path(ctx, c);
+    if (!p) continue;
+    for (int k = 1; k <= 3; k++) {
+      size_t i = size_t(car_class) * 3 + size_t(k - 1);
+      if (i >= p->size() || (*p)[i] - 1 > round) break;
+      clubs[c].upgrade[car_class] = k;
+    }
+  }
+}
+
 int League::Leader() const {
   if (clubs[player_club].rank == 0) return player_club;
   for (int c : opponents)

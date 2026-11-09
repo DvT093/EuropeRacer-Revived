@@ -9,6 +9,7 @@
 #include <cstdlib>
 
 #include "engine/dfm.h"
+#include "er/gameini.h"
 #include "er/screens.h"
 
 namespace er {
@@ -249,6 +250,12 @@ class Race : public ErScreen {
       l->is_new = false;
     }
     game.race_counted = false;
+    // 0x497af4: write game.ini for the race.
+    davi::IniFile ini;
+    ini.Load(game.install.ReadPath("Ini/game.ini"));
+    WriteGameIni(game, ini);
+    std::string out = game.install.WritePath("Ini/game.ini");
+    if (!ini.Save(out)) SDL_Log("menu: cannot write %s", out.c_str());
     const char* fake = std::getenv("ERACER_RACE_RESULT");
     if (!fake) {
       SDL_Log("menu: the race is not ported yet");

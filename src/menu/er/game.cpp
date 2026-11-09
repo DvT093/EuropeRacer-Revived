@@ -347,7 +347,10 @@ void Game::AfterRace() {
   }
   const RaceEntry* e = CurrentRace();
   int d = std::clamp(choices.difficulty, 0, 2);
-  bool qualified = e && race.position < e->qualify[d];
+  // QR_CHASE rows keep Qualify as milliseconds elsewhere (parser 0x4792ac);
+  // their position limit is 0, so 0x494218 only qualifies Position < 0.
+  int limit = e ? (e->race_type == "QR_CHASE" ? 0 : e->qualify[d]) : 0;
+  bool qualified = e && race.position < limit;
   int races = LeagueRaces();
   bool last = CurrentLeague()->round + 1 >= races;
   if (!qualified) Go(p + "DISQUALIFIED");

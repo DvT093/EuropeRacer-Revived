@@ -12,6 +12,7 @@
 
 #include "engine/app.h"
 #include "er/flow.h"
+#include "launcher/race_launcher.h"
 #include "er/gamedata.h"
 #include "er/league.h"
 #include "er/race.h"
@@ -85,6 +86,9 @@ class Game {
   // Races in the current league: CH 5 per class, AD all [ADVENTURE] rows.
   int LeagueRaces() const;
   std::string media_dir;  // Langdata/<lang>/Media (movies)
+  // The CD's Game folder and SwARc's per-game data dir: game.ini is read
+  // from the overlay copy if there is one and always written there.
+  red::Install install;
 
   // Shows the form of the current flow step.
   void ShowCurrent();
