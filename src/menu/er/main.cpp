@@ -92,6 +92,9 @@ int main(int argc, char** argv) {
   // The race (eracer, next to this binary unless --race) takes over this
   // window's place through SwARc's host link (ERACER_WINDOW/_LINK_FD).
   cfg.child_id = "ERACER";
+  // HD pictures (tools/upscale_menu.py -> mods/menu/local/hd; own art in
+  // mods/menu/hd wins), drawn while Upgraded is on (F9).
+  if (!mods_dir.empty()) cfg.hd_dirs = {mods_dir + "/hd", mods_dir + "/local/hd"};
   cfg.screenshot_path = shot;
   // Tests: ERACER_MENU_UPGRADES=0 draws the original 800x600 look,
   // ERACER_MENU_SIZE=WxH renders offscreen at that size (as Vakantie Racer).
