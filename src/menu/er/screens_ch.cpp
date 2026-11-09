@@ -6,6 +6,7 @@
 #include "engine/ini.h"
 #include "engine/video.h"
 #include "er/screens.h"
+#include "er/table.h"
 
 namespace er {
 
@@ -397,38 +398,6 @@ class Highscore : public ErScreen {
     int track = 0, car_type = 0, time = 0;
     std::string name;
   };
-  struct TableLayout {
-    int y = 0, title_h = 0, row_h = 0, title_px = 0, row_px = 0;
-    std::vector<std::pair<int, std::string>> cols;  // x, title text
-  };
-
-  static std::string Hms(int ms) {  // 0x468018
-    char b[32];
-    int s = ms / 1000;
-    std::snprintf(b, sizeof b, "%.2d:%.2d:%.2d", s / 3600 % 60, s / 60 % 60, s % 60);
-    return b;
-  }
-  static std::string Msh(int ms) {  // 0x4680c8
-    char b[32];
-    int s = ms / 1000;
-    std::snprintf(b, sizeof b, "%.2d:%.2d:%.2d", s / 60 % 60, s % 60, ms % 1000 / 10);
-    return b;
-  }
-
-  TableLayout ReadLayout(const std::string& sec, std::initializer_list<const char*> cols) {
-    const davi::LayeredIni& ini = game.gamemenu;
-    TableLayout l;
-    l.y = ini.GetInt(sec, "CTT_Y");
-    l.title_h = ini.GetInt(sec, "CTT_TITLEHEIGHT");
-    l.row_h = ini.GetInt(sec, "CTT_CONTROLHEIGHT");
-    l.title_px = -ini.GetInt(sec, "CTT_TITLEFONTHEIGHT");
-    l.row_px = -ini.GetInt(sec, "CTT_CONTROLFONTHEIGHT");
-    for (const char* c : cols)
-      l.cols.push_back({ini.GetInt(sec, std::string("CTT_") + c + "_X"),
-                        game.texts(davi::Trim(ini.Get(sec, std::string("CTT_") + c + "_TITLE")))});
-    return l;
-  }
-
   void LoadScores() {
     const davi::LayeredIni& ini = game.gamemenu;
     const char* secs[] = {"SCORE_ADVENTURE", "SCORE_CC_STANDARD", "SCORE_CC_ATV", "SCORE_CC_SPORT"};
@@ -466,25 +435,13 @@ class Highscore : public ErScreen {
     }
   }
 
-  void DrawTable(SDL_Surface* canvas, int x, int y, const TableLayout& l,
-                 const std::vector<std::vector<std::string>>& rows) {
-    davi::Font* f = app.skin.GetFont(1);  // Hilde
-    if (!f) return;
-    SDL_Color black{0, 0, 0, 255};
-    for (auto& [cx, title] : l.cols) f->DrawLine(canvas, x + cx, y + l.y, title, l.title_px, black);
-    for (size_t r = 0; r < rows.size(); r++)
-      for (size_t c = 0; c < rows[r].size() && c < l.cols.size(); c++)
-        f->DrawLine(canvas, x + l.cols[c].first, y + l.y + l.title_h + int(r) * l.row_h, rows[r][c], l.row_px,
-                    black);
-  }
-
  public:
   Highscore(Game& g) : ErScreen(g, "TFrmHighscore") {
     tabs_.tabs = {{"BtnTab1", "PnPage1"}, {"BtnTab2", "PnPage1"}, {"BtnTab3", "PnPage1"},
                   {"BtnTab4", "PnPage1"}, {"BtnTab5", "PnPage5"}, {"BtnTab6", "PnPage5"}};
     if (davi::Widget* r = form.Get("Pg5Region1")) r->checked = true;
-    score_layout_ = ReadLayout("SCORE_LAYOUT-A", {"NAME", "SCORE", "POSITION", "CLUB", "TIME"});
-    record_layout_ = ReadLayout("SCORE_LAYOUT-E", {"NAME", "TRACK", "CARTYPE", "TRACKTIME"});
+    score_layout_.Load(game.gamemenu, game.texts, "SCORE_LAYOUT-A", {"NAME", "SCORE", "POSITION", "CLUB", "TIME"});
+    record_layout_.Load(game.gamemenu, game.texts, "SCORE_LAYOUT-E", {"NAME", "TRACK", "CARTYPE", "TRACKTIME"});
     LoadScores();
   }
   // The tab control (0x4875f0) lines its tabs up from the first one.
@@ -522,7 +479,7 @@ class Highscore : public ErScreen {
         std::string club = size_t(s.club) < game.data.clubs.size() ? game.texts(game.data.clubs[s.club].name) : "";
         rows.push_back({s.name, std::to_string(s.score), std::to_string(s.position + 1), club, Hms(s.time)});
       }
-      DrawTable(canvas, ox + p->r.x, oy + p->r.y, score_layout_, rows);
+      score_layout_.Draw(app.skin, canvas, ox + p->r.x, oy + p->r.y, rows);
     } else {
       davi::Widget *p = form.Get("PnPage5"), *pg = form.Get("Pg5Page1");
       if (!p || !pg) return;
@@ -533,14 +490,14 @@ class Highscore : public ErScreen {
         const Track* t = game.data.TrackById(r.track);
         rows.push_back({r.name, t ? game.texts(t->name) : "", game.texts(types[r.car_type]), Msh(r.time)});
       }
-      DrawTable(canvas, ox + pg->r.x, oy + pg->r.y, record_layout_, rows);
+      record_layout_.Draw(app.skin, canvas, ox + pg->r.x, oy + pg->r.y, rows);
     }
   }
 
  private:
   Tabs tabs_;
   int tab_ = 0, region_ = 0;
-  TableLayout score_layout_, record_layout_;
+  ScoreTable score_layout_, record_layout_;
   std::vector<Score> scores_[4];
   std::vector<Record> records_[2][3];
 };
