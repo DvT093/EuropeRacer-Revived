@@ -17,7 +17,7 @@
 #include "er/game.h"
 
 int main(int argc, char** argv) {
-  std::string game_dir, lang = "NL", mods_dir, script, shot;
+  std::string game_dir, lang = "NL", mods_dir, script, shot, race_bin;
   if (const char* e = std::getenv("ERACER_GAME_DIR")) game_dir = e;
   for (int i = 1; i < argc; i++) {
     auto next = [&](std::string* out) {
@@ -28,8 +28,9 @@ int main(int argc, char** argv) {
     else if (!std::strcmp(argv[i], "--mods")) next(&mods_dir);
     else if (!std::strcmp(argv[i], "--script")) next(&script);
     else if (!std::strcmp(argv[i], "--shot")) next(&shot);
+    else if (!std::strcmp(argv[i], "--race")) next(&race_bin);
     else {
-      std::fprintf(stderr, "usage: %s --game-dir DIR [--lang NL] [--mods DIR] [--script FILE] [--shot FILE]\n", argv[0]);
+      std::fprintf(stderr, "usage: %s --game-dir DIR [--lang NL] [--mods DIR] [--script FILE] [--shot FILE] [--race BIN]\n", argv[0]);
       return 2;
     }
   }
@@ -88,6 +89,9 @@ int main(int argc, char** argv) {
   davi::App app(skin);
   davi::AppConfig cfg;
   cfg.title = texts("LT_APPTITLE");
+  // The race (eracer, next to this binary unless --race) takes over this
+  // window's place through SwARc's host link (ERACER_WINDOW/_LINK_FD).
+  cfg.child_id = "ERACER";
   cfg.screenshot_path = shot;
   // Tests: ERACER_MENU_UPGRADES=0 draws the original 800x600 look,
   // ERACER_MENU_SIZE=WxH renders offscreen at that size (as Vakantie Racer).
@@ -100,6 +104,11 @@ int main(int argc, char** argv) {
 
   er::Game game(app);
   if (!lang_dir.empty()) game.media_dir = lang_dir + "/Media";
+  if (race_bin.empty()) {
+    std::string self = argv[0];
+    race_bin = self.substr(0, self.find_last_of('/') + 1) + "eracer";
+  }
+  game.race_argv = {race_bin, "--game-dir", davi::FindNoCase(game_dir, "Game"), "--lang", lang};
   game.install = {davi::FindNoCase(game_dir, "Game"), red::Install::DefaultUserDir("eracer")};
   game.db_path = game.install.user_dir + "/menu_players.ini";
   game.db.Load(game.db_path);

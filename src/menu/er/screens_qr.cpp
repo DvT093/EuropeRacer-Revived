@@ -5,6 +5,8 @@
 // picture per radio (0x48af24) and a carousel of three polaroids with
 // previous/next buttons (base 0x4b893c, e.g. tracks 0x4c38d0). The texts are
 // TLanguageText enum values; the names are in re/menu/lt_enum.txt.
+#include <unistd.h>
+
 #include <cstdio>
 #include <cstdlib>
 
@@ -256,6 +258,19 @@ class Race : public ErScreen {
     WriteGameIni(game, ini);
     std::string out = game.install.WritePath("Ini/game.ini");
     if (!ini.Save(out)) SDL_Log("menu: cannot write %s", out.c_str());
+    // The native race reads that file, plays, and writes its result back
+    // into it (game.ini in SwARc's overlay, the same live copy).
+    if (!std::getenv("ERACER_RACE_RESULT") && !game.race_argv.empty() && access(game.race_argv[0].c_str(), X_OK) == 0) {
+      app.After(0, [this] {
+        int st = app.RunChild(game.race_argv);
+        SDL_Log("menu: race exit status %d", st);
+        davi::IniFile ini;
+        ini.Load(game.install.ReadPath("Ini/game.ini"));
+        game.race.Load(ini);
+        game.AfterRace();
+      }, this);
+      return;
+    }
     const char* fake = std::getenv("ERACER_RACE_RESULT");
     // Chase races qualify only with Position < 0 (see AfterRace); what the
     // race writes there is unknown until it is ported, so tests give chase

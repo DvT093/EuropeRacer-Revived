@@ -101,6 +101,8 @@ class Game {
   // The CD's Game folder and SwARc's per-game data dir: game.ini is read
   // from the overlay copy if there is one and always written there.
   red::Install install;
+  // The race binary and its arguments (main.cpp); empty: no race.
+  std::vector<std::string> race_argv;
 
   // Shows the form of the current flow step.
   void ShowCurrent();
