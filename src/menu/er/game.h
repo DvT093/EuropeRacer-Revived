@@ -12,6 +12,7 @@
 #include "engine/app.h"
 #include "er/flow.h"
 #include "er/gamedata.h"
+#include "er/league.h"
 #include "er/race.h"
 
 namespace er {
@@ -28,6 +29,7 @@ class ErScreen : public davi::Screen {
   void OnClick(davi::Widget& w) override;
   bool OnKey(SDL_Keycode k) override;
   void OnShow() override { Layout(); }
+  bool PreviousAllowed() const { return previous_allowed_; }
   // Button placement the original does in code on every show (virtual
   // 0xe4 of each form class); it overrides the Forms.ini coordinates.
   virtual void Layout();
@@ -49,6 +51,7 @@ class ErScreen : public davi::Screen {
   std::string Format(const std::string& msg) const;
 
  private:
+  bool previous_allowed_ = true;  // BtnPrevious Visible in the DFM
   std::vector<std::string> radio_texts_, radio_pics_;
   std::string radio_image_;
   void ApplyRadio();
@@ -59,7 +62,6 @@ struct Choices {
   std::string game_type;  // "QR", "CH", "AD"
   int difficulty = 1;     // 0 easy, 1 normal, 2 hard
   int ch_type = 0;        // championship class: 0 standard, 1 ATV, 2 sport
-  int round = 0;          // current championship/adventure race
   int qr_type = 0;        // 0 single track, 1 duel, 2 time trial, 3 sudden death
   int track = -1, car = -1, club = 0, opponent = 0;  // game ids (-1 = first in the list)
   std::string player = "Speler";  // until the player list exists
@@ -75,13 +77,28 @@ class Game {
   davi::LayeredIni gamemenu;  // GameMenu.ini (+ mod layer)
   Choices choices;
   RaceResult race;  // the last race's result (game.ini)
+  bool race_counted = false;  // race already added to the standings
+  League ch[3], ad;  // championship per car class, adventure
+  // The standings being played (CH: the chosen class; AD); nullptr for QR.
+  League* CurrentLeague();
+  // Races in the current league: CH 5 per class, AD all [ADVENTURE] rows.
+  int LeagueRaces() const;
   std::string media_dir;  // Langdata/<lang>/Media (movies)
 
   // Shows the form of the current flow step.
   void ShowCurrent();
   // Wizard buttons (TBaseFrmWizard.BtnNextClick / BtnPreviousClick).
+  // Both first switch the flow back to the game type's play state, keeping
+  // the form (TFlowMatrix rebase 0x4941e4, from 0x492ad0 / 0x492a8c): a
+  // result flow (FS_CHQUALIFIED ...) ends at ShowTrack, and Next there goes
+  // on in FS_CHSTANDARD. The result forms step without it (NextPlain).
   void Next();
   void Previous();
+  void NextPlain();
+  // Player object +0x37a0: 0 in the menu, 1 playing, 2 the championship or
+  // adventure is won (the rebase then goes to FS_xxWIN).
+  int play_mode = 0;
+  void RebaseToPlay();
   // Switches the flow and shows its first form (or `step`).
   void Go(const std::string& state, int step = 0);
   void AskQuit();

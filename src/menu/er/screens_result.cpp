@@ -5,9 +5,11 @@
 // The winner's photo is ChaW<club> (the club's racer), Chaw8 the player and
 // Chaw9 J.B. Black, the police chief. The racer's name is the club's
 // LT_ED_<club> text (0x49ee2c).
+#include <algorithm>
 #include <cstdio>
 
 #include "er/screens.h"
+#include "er/table.h"
 
 namespace er {
 
@@ -44,6 +46,11 @@ class ResultScreen : public ErScreen {
   void OnClick(davi::Widget& w) override {
     if (Is(w, "btnTryAgain")) {
       app.Show(game.Get("TFrmRace"));
+      return;
+    }
+    if (Is(w, "BtnNext")) {  // 0x4be06c: the next step of the result flow
+      game.Sound("SNDFX_OK");
+      game.NextPlain();
       return;
     }
     ErScreen::OnClick(w);
@@ -119,6 +126,125 @@ class Qualification : public ResultScreen {
   bool qualified_;
 };
 
+// The player's car class: CH the chosen class, AD the car's (0x4a3828).
+int CarClass(Game& g) {
+  if (g.choices.game_type == "CH") return g.choices.ch_type;
+  const Car* c = g.data.CarById(g.choices.car);
+  const char* cls[] = {"CT_STANDARD", "CT_ATV", "CT_SPORT"};
+  for (int i = 0; i < 3; i++)
+    if (c && c->car_type == cls[i]) return i;
+  return 0;
+}
+
+std::string RacerName(Game& g, int club) {
+  return club >= 0 && size_t(club) < g.data.clubs.size() ? g.texts(g.data.clubs[club].opponent) : "";
+}
+
+// TFrmCH/ADResults (0x4c5ad4): the race's result in PnlRanking as layout B
+// (TCtrlGameResults 0x4c5520: the player and the racers by position, name
+// and time mm:ss:hh), and the winner's photo: Res1 when the player won,
+// else cbimgdo<club>.
+class RaceResults : public ErScreen {
+ public:
+  RaceResults(Game& g, const std::string& cls) : ErScreen(g, cls) {
+    table_.Load(game.gamemenu, game.texts, "SCORE_LAYOUT-B", {"NAME", "TRACKTIME"});
+  }
+  void OnShow() override {
+    ErScreen::OnShow();
+    if (!app.skin.assets) return;
+    form.SetPicture("LogoImage", app.skin.assets->Bitmap(Fmt("CBLogo%d", game.choices.club)));
+    std::string pic = "Res1";
+    if (game.race.position != 0)
+      for (auto& r : game.race.racers)
+        if (r.position == 0) pic = Fmt("cbimgdo%d", r.club);
+    form.SetPicture("WinnerImage", app.skin.assets->Bitmap(pic));
+  }
+  void OnClick(davi::Widget& w) override {
+    if (Is(w, "BtnNext")) {
+      game.Sound("SNDFX_OK");
+      game.NextPlain();
+      return;
+    }
+    ErScreen::OnClick(w);
+  }
+  void PaintOver(SDL_Surface* canvas, int ox, int oy) override {
+    davi::Widget* p = form.Get("PnlRanking");
+    if (!p) return;
+    struct Row {
+      int position;
+      std::string name;
+      int time;
+    };
+    std::vector<Row> list{{game.race.position, game.choices.player, game.race.tracktime}};
+    for (auto& r : game.race.racers) list.push_back({r.position, RacerName(game, r.club), r.time});
+    std::stable_sort(list.begin(), list.end(), [](const Row& a, const Row& b) { return a.position < b.position; });
+    std::vector<std::vector<std::string>> rows;
+    for (auto& r : list) rows.push_back({r.name, Msh(r.time)});
+    table_.Draw(app.skin, canvas, ox + p->r.x, oy + p->r.y, rows);
+  }
+
+ private:
+  ScoreTable table_;
+};
+
+// TFrmCH/ADResultRanking (0x4bed10): adds the race to the standings
+// (0x4be724), ranks them (0x4beb50) and shows them in PnlRanking as layout
+// C (TCtrlEndRanking 0x4b6740: name, club, points, total time hh:mm:ss, in
+// rank order). Photo: Res1 when the player leads, else cbimgdo<leader>.
+// Next (0x4beff8) moves the league to its next race.
+class Standings : public ErScreen {
+ public:
+  Standings(Game& g, const std::string& cls) : ErScreen(g, cls) {
+    table_.Load(game.gamemenu, game.texts, "SCORE_LAYOUT-C", {"NAME", "CLUB", "SCORE", "TIME"});
+  }
+  void OnShow() override {
+    ErScreen::OnShow();
+    League* l = game.CurrentLeague();
+    if (!l) return;
+    // The original does this when the form is created, once per race.
+    if (!game.race_counted) {
+      l->AddResult(game.race, CarClass(game));
+      l->Rank();
+      game.race_counted = true;
+    }
+    if (!app.skin.assets) return;
+    form.SetPicture("LogoImage", app.skin.assets->Bitmap(Fmt("CBLogo%d", game.choices.club)));
+    int lead = l->Leader();
+    form.SetPicture("WinnerImage", app.skin.assets->Bitmap(lead == l->player_club ? "Res1" : Fmt("cbimgdo%d", lead)));
+  }
+  void OnClick(davi::Widget& w) override {
+    if (Is(w, "BtnNext")) {
+      // 0x4beff8: the last race done -> won (+0x37a0 = 2), flow to FS_xxWIN.
+      if (League* l = game.CurrentLeague(); l && !l->NextRound(game.LeagueRaces())) {
+        game.play_mode = 2;
+        game.RebaseToPlay();
+        SDL_Log("menu: %s finished (the high score entry is not built yet)", game.choices.game_type.c_str());
+      }
+      game.Sound("SNDFX_OK");
+      game.NextPlain();
+      return;
+    }
+    ErScreen::OnClick(w);
+  }
+  void PaintOver(SDL_Surface* canvas, int ox, int oy) override {
+    davi::Widget* p = form.Get("PnlRanking");
+    League* l = game.CurrentLeague();
+    if (!p || !l) return;
+    std::vector<std::vector<std::string>> rows(5);
+    auto put = [&](int club, const std::string& name) {
+      const ClubStats& s = l->clubs[club];
+      std::string cname = size_t(club) < game.data.clubs.size() ? game.texts(game.data.clubs[club].name) : "";
+      if (s.rank >= 0 && s.rank < 5) rows[s.rank] = {name, cname, std::to_string(s.score), Hms(s.time)};
+    };
+    put(l->player_club, game.choices.player);
+    for (int c : l->opponents) put(c, RacerName(game, c));
+    table_.Draw(app.skin, canvas, ox + p->r.x, oy + p->r.y, rows);
+  }
+
+ private:
+  ScoreTable table_;
+};
+
 }  // namespace
 
 std::unique_ptr<davi::Screen> MakeResultScreen(Game& g, const std::string& key) {
@@ -127,6 +253,10 @@ std::unique_ptr<davi::Screen> MakeResultScreen(Game& g, const std::string& key) 
   if (key == "tfrmchresultdisqualified") return std::make_unique<Qualification>(g, "TFrmCHResultDisqualified", "CH", false);
   if (key == "tfrmadresultqualified") return std::make_unique<Qualification>(g, "TFrmADResultQualified", "AD", true);
   if (key == "tfrmadresultdisqualified") return std::make_unique<Qualification>(g, "TFrmADResultDisqualified", "AD", false);
+  if (key == "tfrmchresults") return std::make_unique<RaceResults>(g, "TFrmCHResults");
+  if (key == "tfrmadresults") return std::make_unique<RaceResults>(g, "TFrmADResults");
+  if (key == "tfrmchresultranking") return std::make_unique<Standings>(g, "TFrmCHResultRanking");
+  if (key == "tfrmadresultranking") return std::make_unique<Standings>(g, "TFrmADResultRanking");
   return nullptr;
 }
 

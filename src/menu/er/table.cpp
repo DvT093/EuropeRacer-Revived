@@ -1,5 +1,6 @@
 #include "er/table.h"
 
+#include <algorithm>
 #include <cstdio>
 
 #include "engine/dfm.h"
@@ -26,14 +27,22 @@ void ScoreTable::Draw(davi::Skin& skin, SDL_Surface* canvas, int x, int y0,
                       const std::vector<std::vector<std::string>>& rows) const {
   davi::Font* f = skin.GetFont(1);  // Hilde
   if (!f) return;
-  auto cell = [&](int cx, int cy, const std::string& s, int px) {
-    davi::TextStyle st{f, px, {0, 0, 0, 255}, davi::HAlign::kLeft, davi::VAlign::kTop, false};
-    davi::DrawText(canvas, SDL_Rect{cx, cy, 800, px * 2}, s, st);
+  // Each cell is a label as wide as its column (up to the next column's x),
+  // so a long name is cut off there instead of running into the next.
+  auto width = [&](size_t c) {
+    int w = 800;
+    for (auto& o : cols)
+      if (o.first > cols[c].first) w = std::min(w, o.first - cols[c].first);
+    return w;
   };
-  for (auto& [cx, title] : cols) cell(x + cx, y0 + y, title, title_px);
+  auto cell = [&](size_t c, int cy, const std::string& s, int px) {
+    davi::TextStyle st{f, px, {0, 0, 0, 255}, davi::HAlign::kLeft, davi::VAlign::kTop, false};
+    davi::DrawText(canvas, SDL_Rect{x + cols[c].first, cy, width(c), px * 2}, s, st);
+  };
+  for (size_t c = 0; c < cols.size(); c++) cell(c, y0 + y, cols[c].second, title_px);
   for (size_t r = 0; r < rows.size(); r++)
     for (size_t c = 0; c < rows[r].size() && c < cols.size(); c++)
-      cell(x + cols[c].first, y0 + y + title_h + int(r) * row_h, rows[r][c], row_px);
+      cell(c, y0 + y + title_h + int(r) * row_h, rows[r][c], row_px);
 }
 
 std::string Hms(int ms) {

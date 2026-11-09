@@ -242,6 +242,13 @@ class Race : public ErScreen {
   Race(Game& g) : ErScreen(g, "TFrmRace") {}
   void OnShow() override {
     ErScreen::OnShow();
+    // 0x4b4558: a new championship gets its opponents before the first race.
+    if (League* l = game.CurrentLeague()) {
+      l->player_club = game.choices.club;
+      if (l->is_new) l->PickOpponents();
+      l->is_new = false;
+    }
+    game.race_counted = false;
     const char* fake = std::getenv("ERACER_RACE_RESULT");
     if (!fake) {
       SDL_Log("menu: the race is not ported yet");
@@ -252,6 +259,10 @@ class Race : public ErScreen {
       davi::IniFile ini;
       ini.Load(path);
       if (!game.race.Load(ini)) SDL_Log("menu: race result %s not found", path.c_str());
+      // The race writes back the country<ii> the menu gave it (0x4988ec):
+      // the league's opponents. A test file cannot know those (random).
+      if (League* l = game.CurrentLeague())
+        for (size_t i = 0; i < game.race.racers.size() && i < 4; i++) game.race.racers[i].club = l->opponents[i];
       game.AfterRace();
     }, this);
   }

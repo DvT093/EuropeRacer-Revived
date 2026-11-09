@@ -43,6 +43,13 @@ class MainWindow : public ErScreen {
       game.Sound("SNDFX_OK");
       std::string type = form.W("BtnRadio2").checked ? "CH" : form.W("BtnRadio3").checked ? "AD" : "QR";
       game.choices.game_type = type;
+      game.play_mode = 1;
+      // A new championship/adventure: every standing back to the start
+      // (0x4a2be8). There are no saved games yet to continue.
+      if (type != "QR") {
+        for (auto& l : game.ch) l.Reset();
+        game.ad.Reset();
+      }
       // A new championship/adventure until saved games exist (FS_CHSTANDARD /
       // FS_ADSTANDARD continue one).
       game.Go(type == "QR" ? "FS_QRSTANDARD" : type == "CH" ? "FS_CHNEW" : "FS_ADNEW", 1);
@@ -66,6 +73,7 @@ class MainWindow : public ErScreen {
 }  // namespace
 
 ErScreen::ErScreen(Game& g, const std::string& cls) : davi::Screen(g.app, cls), game(g) {
+  if (davi::Widget* p = form.Get("BtnPrevious")) previous_allowed_ = p->visible;
   // SetBackground (0x492080) sizes the form to its background picture.
   if (davi::Widget* bg = form.Get("BgndImage"); bg && bg->picture) {
     form.w = bg->picture->w;
@@ -277,7 +285,12 @@ void Game::ShowCurrent() {
     SDL_Log("menu: form %s could not be built", cls.c_str());
     return;
   }
-  if (davi::Widget* p = s->form.Get("BtnPrevious")) p->visible = flow.HasPrevious() && davi::Lower(cls) != "tfrmmainwindow";
+  // Shown when there is a step back, unless the form hides it itself (the
+  // result forms set Visible = False in their DFM).
+  if (davi::Widget* p = s->form.Get("BtnPrevious")) {
+    auto* es = dynamic_cast<ErScreen*>(s);
+    p->visible = flow.HasPrevious() && davi::Lower(cls) != "tfrmmainwindow" && (!es || es->PreviousAllowed());
+  }
   app.Show(s);
 }
 
@@ -285,11 +298,32 @@ void Game::Go(const std::string& state, int step) {
   if (flow.Set(state, step)) ShowCurrent();
 }
 
+void Game::RebaseToPlay() {
+  const std::string& t = choices.game_type;
+  std::string state;
+  if (play_mode == 1) {
+    if (t == "QR") state = choices.qr_type == 1 ? "FS_QRDUEL" : "FS_QRSTANDARD";  // 0x4940ac
+    else if (t == "CH") state = CurrentLeague()->is_new ? "FS_CHNEW" : "FS_CHSTANDARD";
+    else if (t == "AD") state = ad.is_new ? "FS_ADNEW" : "FS_ADSTANDARD";
+  } else if (play_mode == 2) {
+    if (t == "CH") state = "FS_CHWIN";  // 0x4941a4
+    else if (t == "AD") state = "FS_ADWIN";
+  }
+  // TFlowMatrix 0x493a3c: the current form's step in the other state.
+  if (!state.empty() && state != flow.State()) flow.Rebase(state);
+}
+
+void Game::NextPlain() {
+  if (flow.Next()) ShowCurrent();
+}
+
 void Game::Next() {
+  RebaseToPlay();
   if (flow.Next()) ShowCurrent();
 }
 
 void Game::Previous() {
+  RebaseToPlay();
   if (flow.Previous()) ShowCurrent();
 }
 
@@ -314,18 +348,27 @@ void Game::AfterRace() {
   const RaceEntry* e = CurrentRace();
   int d = std::clamp(choices.difficulty, 0, 2);
   bool qualified = e && race.position < e->qualify[d];
-  int races = choices.game_type == "AD" ? int(data.adventure.size()) : 5;
-  bool last = choices.round + 1 >= races;
+  int races = LeagueRaces();
+  bool last = CurrentLeague()->round + 1 >= races;
   if (!qualified) Go(p + "DISQUALIFIED");
   else Go(p + (last ? "WIN" : "QUALIFIED"));
 }
 
 const RaceEntry* Game::CurrentRace() const {
-  if (choices.game_type == "AD") return size_t(choices.round) < data.adventure.size() ? &data.adventure[choices.round] : nullptr;
+  if (choices.game_type == "AD") return size_t(ad.round) < data.adventure.size() ? &data.adventure[ad.round] : nullptr;
   if (choices.game_type != "CH") return nullptr;
-  size_t row = size_t(choices.ch_type) * 5 + size_t(choices.round);
+  int cls = std::clamp(choices.ch_type, 0, 2);
+  size_t row = size_t(cls) * 5 + size_t(ch[cls].round);
   return row < data.championship.size() ? &data.championship[row] : nullptr;
 }
+
+League* Game::CurrentLeague() {
+  if (choices.game_type == "AD") return &ad;
+  if (choices.game_type == "CH") return &ch[std::clamp(choices.ch_type, 0, 2)];
+  return nullptr;
+}
+
+int Game::LeagueRaces() const { return choices.game_type == "AD" ? int(data.adventure.size()) : 5; }
 
 void Game::AskQuit() {
   davi::Screen* q = Get("TFrmReqQuit");
@@ -340,7 +383,10 @@ void Game::AskQuit() {
   app.ShowModal(q, [this, q](int r) {
     if (r != 1) return;
     if (q->form.W("BtnRadio2").checked) app.Quit(0);
-    else Go("FS_DEFAULT");
+    else {
+      play_mode = 0;
+      Go("FS_DEFAULT");
+    }
   });
 }
 
