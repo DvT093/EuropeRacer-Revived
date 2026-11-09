@@ -25,3 +25,5 @@ re/menu/methods.txt
 re/menu/fields.json
 re/menu/gfx_addrs.txt
 re/menu/strings_by_form.txt
+re/*.err
+out_*.log

@@ -1,0 +1,160 @@
+# jumptable-adres<TAB>doelen (komma-gescheiden), aanvulling op de Ghidra-export
+# Gevuld met re/scripts/resolve_jumptables.py (9 nov 2026, script uit A2 Racer IV).
+# 0040E8A2: not a table jump: jmp	dword ptr [eax + 0x1c]
+# 0040ED52: not a table jump: jmp	dword ptr [eax + 0x18]
+# 0043AAD2: not a table jump: jmp	dword ptr [eax + 0x11c]
+# 0043AAE2: not a table jump: jmp	dword ptr [eax + 0xfc]
+# 0043AAF2: not a table jump: jmp	dword ptr [eax + 0xdc]
+# 0043AB02: not a table jump: jmp	dword ptr [eax + 0x1c]
+# 0043AB12: not a table jump: jmp	dword ptr [eax + 0xbc]
+# 0043AB22: not a table jump: jmp	dword ptr [eax + 0x9c]
+# 0043AB32: not a table jump: jmp	dword ptr [eax + 0x7c]
+# 0043AB42: not a table jump: jmp	dword ptr [eax + 0x3c]
+# 0043AB52: not a table jump: jmp	dword ptr [eax + 0x5c]
+# 0043AB62: not a table jump: jmp	dword ptr [eax + 0x120]
+# 0043AB72: not a table jump: jmp	dword ptr [eax + 0x100]
+# 0043AB82: not a table jump: jmp	dword ptr [eax + 0xe0]
+# 0043AB92: not a table jump: jmp	dword ptr [eax + 0x20]
+# 0043ABA2: not a table jump: jmp	dword ptr [eax + 0xc0]
+# 0043ABB2: not a table jump: jmp	dword ptr [eax + 0xa0]
+# 0043ABC2: not a table jump: jmp	dword ptr [eax + 0x80]
+# 0043ABD2: not a table jump: jmp	dword ptr [eax + 0x60]
+# 0043ABE2: not a table jump: jmp	dword ptr [eax + 0x40]
+# 0043ABF2: not a table jump: jmp	dword ptr [eax + 0x124]
+# 0043AC02: not a table jump: jmp	dword ptr [eax + 0x104]
+# 0043AC12: not a table jump: jmp	dword ptr [eax + 0xe4]
+# 0043AC22: not a table jump: jmp	dword ptr [eax + 0x24]
+# 0043AC32: not a table jump: jmp	dword ptr [eax + 0xc4]
+# 0043AC42: not a table jump: jmp	dword ptr [eax + 0xa4]
+# 0043AC52: not a table jump: jmp	dword ptr [eax + 0x84]
+# 0043AC62: not a table jump: jmp	dword ptr [eax + 0x44]
+# 0043AC72: not a table jump: jmp	dword ptr [eax + 0x64]
+# 0043AC82: not a table jump: jmp	dword ptr [eax + 0x128]
+# 0043AC92: not a table jump: jmp	dword ptr [eax + 0x108]
+# 0043ACA2: not a table jump: jmp	dword ptr [eax + 0xe8]
+# 0043ACB2: not a table jump: jmp	dword ptr [eax + 0x28]
+# 0043ACC2: not a table jump: jmp	dword ptr [eax + 0xc8]
+# 0043ACD2: not a table jump: jmp	dword ptr [eax + 0xa8]
+# 0043ACE2: not a table jump: jmp	dword ptr [eax + 0x88]
+# 0043ACF2: not a table jump: jmp	dword ptr [eax + 0x68]
+# 0043AD02: not a table jump: jmp	dword ptr [eax + 0x48]
+# 0043AD12: not a table jump: jmp	dword ptr [eax + 0x12c]
+# 0043AD22: not a table jump: jmp	dword ptr [eax + 0x10c]
+# 0043AD32: not a table jump: jmp	dword ptr [eax + 0xec]
+# 0043AD42: not a table jump: jmp	dword ptr [eax + 0xc]
+# 0043AD52: not a table jump: jmp	dword ptr [eax + 0x2c]
+# 0043AD62: not a table jump: jmp	dword ptr [eax + 0xcc]
+# 0043AD72: not a table jump: jmp	dword ptr [eax + 0xac]
+# 0043AD82: not a table jump: jmp	dword ptr [eax + 0x8c]
+# 0043AD92: not a table jump: jmp	dword ptr [eax + 0x4c]
+# 0043ADA2: not a table jump: jmp	dword ptr [eax + 0x6c]
+# 0043ADB2: not a table jump: jmp	dword ptr [eax + 0x110]
+# 0043ADC2: not a table jump: jmp	dword ptr [eax + 0x130]
+# 0043ADD2: not a table jump: jmp	dword ptr [eax + 0xf0]
+# 0043ADE2: not a table jump: jmp	dword ptr [eax + 0xd0]
+# 0043ADF2: not a table jump: jmp	dword ptr [eax + 0x10]
+# 0043AE02: not a table jump: jmp	dword ptr [eax + 0xb0]
+# 0043AE12: not a table jump: jmp	dword ptr [eax + 0x90]
+# 0043AE22: not a table jump: jmp	dword ptr [eax + 0x50]
+# 0043AE32: not a table jump: jmp	dword ptr [eax + 0x30]
+# 0043AE42: not a table jump: jmp	dword ptr [eax + 0x70]
+# 0043AE52: not a table jump: jmp	dword ptr [eax + 0x114]
+# 0043AE62: not a table jump: jmp	dword ptr [eax + 0x134]
+# 0043AE72: not a table jump: jmp	dword ptr [eax + 0xf4]
+# 0043AE82: not a table jump: jmp	dword ptr [eax + 0xd4]
+# 0043AE92: not a table jump: jmp	dword ptr [eax + 0x14]
+# 0043AEA2: not a table jump: jmp	dword ptr [eax + 0xb4]
+# 0043AEB2: not a table jump: jmp	dword ptr [eax + 0x94]
+# 0043AEC2: not a table jump: jmp	dword ptr [eax + 0x54]
+# 0043AED2: not a table jump: jmp	dword ptr [eax + 0x74]
+# 0043AEE2: not a table jump: jmp	dword ptr [eax + 0x34]
+# 0043AEF2: not a table jump: jmp	dword ptr [eax + 0x118]
+# 0043AF02: not a table jump: jmp	dword ptr [eax + 0xf8]
+# 0043AF12: not a table jump: jmp	dword ptr [eax + 0xd8]
+# 0043AF22: not a table jump: jmp	dword ptr [eax + 0x18]
+# 0043AF32: not a table jump: jmp	dword ptr [eax + 0xb8]
+# 0043AF42: not a table jump: jmp	dword ptr [eax + 0x98]
+# 0043AF52: not a table jump: jmp	dword ptr [eax + 0x78]
+# 0043AF62: not a table jump: jmp	dword ptr [eax + 0x58]
+# 0043AF72: not a table jump: jmp	dword ptr [eax + 0x38]
+# 0044D982: not a table jump: jmp	dword ptr [eax + 0x30]
+# 0047B902: not a table jump: jmp	dword ptr [eax]
+# 004EDF40: not a table jump: jmp	dword ptr [0x5e42ec]
+# 004FD920: [004FDA50 + esi*4], unbounded, 8 entries
+004FD920	004FD927,004FD934,004FD941,004FD94E,004FD983,004FD9A3,004FD9C3,004FD9E3
+# 004FD97C: [004FDA60 + esi*4], unbounded, 4 entries
+004FD97C	004FD983,004FD9A3,004FD9C3,004FD9E3
+# 0050B94E: [0050BAF4 + eax*4], unbounded, 5 entries
+0050B94E	0050BADD,0050B955,0050B976,0050B9AC,0050B991
+# 0050BB87: [0050BD14 + eax*4], unbounded, 5 entries
+0050BB87	0050BB9A,0050BB8E,0050BBB1,0050BBC1,0050BBB9
+# 0051141D: not a table jump: jmp	dword ptr [edx + 0x10]
+# 00515CA4: [00515F40 + eax*4], unbounded, 4 entries
+00515CA4	00515CF4,00515CAB,00515D40,00515DE9
+# 00515F5E: [00516010 + eax*4], unbounded, 4 entries
+00515F5E	00515F79,00515F65,00515F8D,00515FF9
+# 00516044: [00516108 + eax*4], unbounded, 4 entries
+00516044	00516080,0051604B,0051609F,005160E6
+# 00516145: [00516224 + eax*4], unbounded, 4 entries
+00516145	0051617B,0051614C,00516195,0051620A
+# 00516245: [00516258 + eax*4], unbounded, 2 entries
+00516245	00516252,0051624C
+# 005163A8: [005164B0 + eax*4], unbounded, 4 entries
+005163A8	005163EA,005163AF,0051642D,00516475
+# 005164C5: [005164F8 + eax*4], unbounded, 3 entries
+005164C5	005164D3,005164CC,005164DA
+# 00517ECF: [0051803C + ecx*4], unbounded, 5 entries
+00517ECF	00517FA4,00517F0D,00517F69,00517ED6,00517FE2
+# 005187C6: [00518978 + eax*4], unbounded, 6 entries
+005187C6	005187CD,00518820,00518861,005188A5,00518932,005188ED
+# 00518A76: [00518CF0 + eax*4], unbounded, 9 entries
+00518A76	00518A7D,00518AD0,00518B11,00518B52,00518C66,00518B97,00518BDC,00518C21,00518CAB
+# 0051C415: not a table jump: jmp	dword ptr [eax + 0x14]
+# 0051C9FE: [0051CAA4 + esi*4], unbounded, 4 entries
+0051C9FE	0051CA1D,0051CA05,0051CA29,0051CA11
+# 0051CB49: [0051CC3C + esi*4], unbounded, 4 entries
+0051CB49	0051CBAD,0051CB50,0051CBEB,0051CB90
+# 0051CCF8: [0051CF98 + ebp*4], unbounded, 4 entries
+0051CCF8	0051CDE3,0051CCFF,0051CE70,0051CD70
+# 0051E7FA: [0051E910 + ecx*4], unbounded, 8 entries
+0051E7FA	0051E83B,0051E848,0051E82E,0051E852,0051E801,0051E8B7,0051E882,0051E88C
+# 0051EF23: [0051F164 + eax*4], unbounded, 6 entries
+0051EF23	0051EF97,0051EFFB,0051F096,0051F046,0051F0F8,0051EF2A
+# 0051FBF2: [0051FE38 + eax*4], unbounded, 7 entries
+0051FBF2	0051FBF9,0051FC54,0051FCA7,0051FD04,0051FD80,0051FDDD,0051FD42
+# 00520257: [00520274 + eax*4], unbounded, 2 entries
+00520257	0052025E,00520269
+# 00520B01: [00520EA8 + eax*4], unbounded, 16 entries
+00520B01	00520E6F,00520B08,00520B62,00520B99,00520BD0,00520C07,00520C3E,00520C75,00520CAC,00520CE3,00520D25,00520D5C,00520D93,00520DCA,00520E01,00520E38
+# 005213BC: [00521780 + edx*4], unbounded, 35 entries
+005213BC	005213C3,00521434,00521452,0052145D,0052147B,00521499,005214B4,005214EB,005214F0,005214F6,005214FB,00521501,0052150A,00521514,00521535,0052154B,0052159A,005215DA,005215B0,0052162E,00521640,00521600,00521678,0052169B,005216A1,005216A7,005216AD,005216C8,005216DB,005216EE,00521701,00521714,00521749,0052176F,00521727
+# 005214E4: [005217A8 + ecx*4], unbounded, 28 entries
+005214E4	005214EB,005214F0,005214F6,005214FB,00521501,0052150A,00521514,00521535,0052154B,0052159A,005215DA,005215B0,0052162E,00521640,00521600,00521678,0052169B,005216A1,005216A7,005216AD,005216C8,005216DB,005216EE,00521701,00521714,00521749,0052176F,00521727
+# 00521671: [005217E8 + edx*4], unbounded, 13 entries
+00521671	00521678,0052169B,005216A1,005216A7,005216AD,005216C8,005216DB,005216EE,00521701,00521714,00521749,0052176F,00521727
+# 005238A8: [00523950 + eax*4], unbounded, 5 entries
+005238A8	0052393A,005238FA,005238AF,005238BE,0052390D
+# 00523988: [005239DC + ecx*4], unbounded, 5 entries
+00523988	0052399C,005239B3,0052398F,005239A1,005239C9
+# 00523A3C: [00523AF4 + ecx*4], unbounded, 5 entries
+00523A3C	00523ABB,00523AA2,00523A43,00523A4F,00523AAE
+# 00523B34: [00523C4C + eax*4], unbounded, 5 entries
+00523B34	00523C24,00523BE8,00523B3B,00523B65,00523C16
+# 00524411: [00524A0C + eax*4], unbounded, 26 entries
+00524411	00524418,00524466,0052450B,00524542,005244D4,0052449D,00524579,005245D3,0052460A,00524641,00524678,005246AF,0052478B,005247D9,00524810,005246E6,0052471D,00524754,00524847,0052487E,005248B5,005248EC,00524923,005249D3,00524991,0052495A
+# 00524DFD: [005254E0 + eax*4], unbounded, 26 entries
+00524DFD	00524E04,00524E3C,00524E59,00524E61,00524EC9,00524F3C,00524F71,00524FC8,0052501F,0052506C,0052509C,0052503A,00525164,00525197,005251CA,005250CC,005250FF,00525132,005251FD,00525231,00525252,0052525C,005252B5,0052544A,005253A9,0052531D
+# 005A2D00: not a table jump: jmp	dword ptr [0x5e4008]
+# 005A2D06: not a table jump: jmp	dword ptr [0x5e400c]
+# 005A2D0C: not a table jump: jmp	dword ptr [0x5e4010]
+# 005A3D38: not a table jump: 
+# 005B0C79: not a table jump: jmp	eax
+# 005B0C87: not a table jump: jmp	eax
+# 005B0C8E: not a table jump: jmp	eax
+# 005B0EAC: not a table jump: jmp	dword ptr [ebx + 0x18]
+# 005B4125: not a table jump: jmp	dword ptr [edx + 0x14]
+# 005B84F5: not a table jump: jmp	dword ptr [ebx]
+# 005B8581: not a table jump: jmp	dword ptr [ebx]
+# 005BB232: not a table jump: jmp	dword ptr [0x5e40d4]
+# 005BB247: not a table jump: jmp	dword ptr [0x5e40d8]
+# 005C1B80: not a table jump: jmp	dword ptr [0x5e4128]
