@@ -23,6 +23,11 @@
 #include "runtime/log.h"
 #include "win32/process.h"
 
+namespace eracer {
+extern int g_render_w, g_render_h;  // game/gfx_resolution.cpp
+void ScreenSize(int* w, int* h);
+}  // namespace eracer
+
 namespace {
 
 namespace fs = std::filesystem;
@@ -136,10 +141,18 @@ int main(int argc, char** argv) {
   // day; ERACER_MAX_FPS=0 uncaps (SwARc). Check FPSMULT before relying on it.
   game.max_fps = 60;
 
-  // Image upgrades as in Vakantie Racer and A2 Racer IV: MSAA with
+  // Image upgrades as in Vakantie Racer and A2 Racer IV: render at the
+  // screen's own 4:3 size (src/game/gfx_resolution.cpp,
+  // ERACER_RESOLUTION=original|WxH overrides), MSAA with
   // alpha-to-coverage, mipmaps with trilinear and 16x anisotropic
   // filtering, HD textures. F9 switches all of it between original and
   // upgraded, F10 only anti-aliasing, F11 only filtering.
+  eracer::ScreenSize(&eracer::g_render_w, &eracer::g_render_h);
+  if (const char* r = std::getenv("ERACER_RESOLUTION")) {
+    int w = 0, h = 0;
+    if (!std::strcmp(r, "original")) eracer::g_render_w = eracer::g_render_h = -1;
+    else if (std::sscanf(r, "%dx%d", &w, &h) == 2 && w >= 320 && h >= 240) eracer::g_render_w = w, eracer::g_render_h = h;
+  }
   game.gfx.msaa = 8;
   game.gfx.alpha_to_coverage = true;
   game.gfx.mipmaps = true;
