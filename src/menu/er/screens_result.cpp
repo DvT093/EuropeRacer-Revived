@@ -245,6 +245,77 @@ class Standings : public ErScreen {
   ScoreTable table_;
 };
 
+// TFrmCH/ADShowStatus (0x4c0954, 0x4bb5xx): how many races are left
+// (LT_MSG_ADSTATUS with the club's LT_TXT_CB_<club> and the number, or
+// LT_MSG_ADSTATUS2 for the last one), the club's car for this class in
+// ImgClub (car<id>a), and the standings in PnlRanking as layout D
+// (TCtrlStatusRanking 0x4baef4: name, club, points, highest first).
+// BtnRestart (0x4c0c38): "really restart?", then the league starts over
+// from the movie of FS_CHNEW / FS_ADNEW.
+class ShowStatus : public ErScreen {
+ public:
+  ShowStatus(Game& g, const std::string& cls) : ErScreen(g, cls) {
+    table_.Load(game.gamemenu, game.texts, "SCORE_LAYOUT-D", {"NAME", "CLUB", "SCORE"});
+  }
+  void OnShow() override {
+    ErScreen::OnShow();
+    League* l = game.CurrentLeague();
+    if (!l) return;
+    static const char* kClubTexts[] = {"LT_TXT_CB_USA",     "LT_TXT_CB_JAPAN",  "LT_TXT_CB_RUSSIA", "LT_TXT_CB_GERMANY",
+                                       "LT_TXT_CB_ENGLAND", "LT_TXT_CB_FRANCE", "LT_TXT_CB_ITALY",  "LT_TXT_CB_HOLLAND"};
+    std::string club = game.choices.club >= 0 && game.choices.club < 8 ? game.texts(kClubTexts[game.choices.club]) : "";
+    int left = game.LeagueRaces() - l->round;
+    std::string msg = game.texts(left < 2 ? "LT_MSG_ADSTATUS2" : "LT_MSG_ADSTATUS");
+    msg = FillName(msg, club);
+    if (left >= 2) msg = FillName(msg, std::to_string(left));
+    form.SetCaption("TxtContent", msg);
+    if (app.skin.assets) {
+      int car = ClubCarFor(CarClass(game));
+      form.SetPicture("ImgClub", car >= 0 ? app.skin.assets->Bitmap(Fmt("car%.2da", car)) : nullptr);
+    }
+  }
+  void OnClick(davi::Widget& w) override {
+    if (Is(w, "BtnRestart")) {
+      game.Ask(game.texts("LT_MSG_RESTART"), [this] {
+        bool ad = game.choices.game_type == "AD";
+        if (League* l = game.CurrentLeague()) l->Reset();  // 0x4a4f38
+        game.flow.Set(ad ? "FS_ADNEW" : "FS_CHNEW");
+        game.flow.SkipTo("TFrmPlayMovie");
+        game.ShowCurrent();
+      });
+      return;
+    }
+    ErScreen::OnClick(w);
+  }
+  void PaintOver(SDL_Surface* canvas, int ox, int oy) override {
+    davi::Widget* p = form.Get("PnlRanking");
+    League* l = game.CurrentLeague();
+    if (!p || !l) return;
+    struct Row {
+      std::string name, club;
+      int score;
+    };
+    auto club_name = [&](int c) {
+      return size_t(c) < game.data.clubs.size() ? game.texts(game.data.clubs[c].name) : std::string();
+    };
+    std::vector<Row> list{{game.choices.player, club_name(l->player_club), l->clubs[l->player_club].score}};
+    for (int c : l->opponents) list.push_back({RacerName(game, c), club_name(c), l->clubs[c].score});
+    std::stable_sort(list.begin(), list.end(), [](const Row& a, const Row& b) { return a.score > b.score; });
+    std::vector<std::vector<std::string>> rows;
+    for (auto& r : list) rows.push_back({r.name, r.club, std::to_string(r.score)});
+    table_.Draw(app.skin, canvas, ox + p->r.x, oy + p->r.y, rows);
+  }
+
+ private:
+  // The club's car of a class ([CLUBS], 0x49edcc +0xc + class*4).
+  int ClubCarFor(int cls) const {
+    if (size_t(game.choices.club) >= game.data.clubs.size()) return -1;
+    const Club& c = game.data.clubs[game.choices.club];
+    return cls == 1 ? c.car_atv : cls == 2 ? c.car_sport : c.car_standard;
+  }
+  ScoreTable table_;
+};
+
 }  // namespace
 
 std::unique_ptr<davi::Screen> MakeResultScreen(Game& g, const std::string& key) {
@@ -257,6 +328,8 @@ std::unique_ptr<davi::Screen> MakeResultScreen(Game& g, const std::string& key) 
   if (key == "tfrmadresults") return std::make_unique<RaceResults>(g, "TFrmADResults");
   if (key == "tfrmchresultranking") return std::make_unique<Standings>(g, "TFrmCHResultRanking");
   if (key == "tfrmadresultranking") return std::make_unique<Standings>(g, "TFrmADResultRanking");
+  if (key == "tfrmchshowstatus") return std::make_unique<ShowStatus>(g, "TFrmCHShowStatus");
+  if (key == "tfrmadshowstatus") return std::make_unique<ShowStatus>(g, "TFrmADShowStatus");
   return nullptr;
 }
 

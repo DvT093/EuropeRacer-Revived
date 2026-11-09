@@ -4,6 +4,7 @@
 // are in skin.cpp, with the GameMenu.dat address they come from.
 #pragma once
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -102,6 +103,9 @@ class Game {
   // Switches the flow and shows its first form (or `step`).
   void Go(const std::string& state, int step = 0);
   void AskQuit();
+  // TFrmRequester with Yes/No (e.g. 0x4910a0 for "restart?"); `yes` runs
+  // when Yes is chosen.
+  void Ask(const std::string& msg, std::function<void()> yes);
   // After the race (0x494218): reads `race` and switches to the result
   // flow of the game type.
   void AfterRace();

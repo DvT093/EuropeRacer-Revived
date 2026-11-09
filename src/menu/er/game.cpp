@@ -370,6 +370,20 @@ League* Game::CurrentLeague() {
 
 int Game::LeagueRaces() const { return choices.game_type == "AD" ? int(data.adventure.size()) : 5; }
 
+void Game::Ask(const std::string& msg, std::function<void()> yes) {
+  davi::Screen* q = Get("TFrmRequester");
+  if (!q->built) {
+    yes();
+    return;
+  }
+  q->form.SetCaption("TxtContent", msg);
+  if (davi::Widget* ok = q->form.Get("BtnOk")) ok->visible = true, ok->caption = texts("LT_YES");
+  if (davi::Widget* no = q->form.Get("BtnCancel")) no->visible = true, no->caption = texts("LT_NO");
+  app.ShowModal(q, [yes = std::move(yes)](int r) {
+    if (r == 1) yes();
+  });
+}
+
 void Game::AskQuit() {
   davi::Screen* q = Get("TFrmReqQuit");
   if (!q->built) {
