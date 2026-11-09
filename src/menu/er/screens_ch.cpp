@@ -1,4 +1,5 @@
 // Championship and Adventure screens, plus the movie screen both flows use.
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 
@@ -220,52 +221,154 @@ class ADSelectCar : public ErScreen {
   Carousel car_;
 };
 
-// TFrmCHGarage 0x4c10a8 / TFrmADGarage 0x4bcb3c: the club photo
-// (cbimgcO<club>), the car (car<id>a) with its property bars, and the
-// garage offers as a carousel: repair 5% / 10% (GRep10/50), nitro 1 / 5
-// litre (GNit10/50), the next upgrade pack (GPak1-3). Prices and buying are
-// not decompiled yet: the texts show "?" for the amounts and Kopen is off.
+// TFrmCHGarage 0x4c10a8 / TFrmADGarage 0x4bcb3c (same code, CH or AD
+// record): five offers in a carousel that wraps around, opening on the
+// upgrade pack. Prices are constants (DATA 0x4c8778..0x4c8794); details in
+// re/menu/garage_spec.md.
+//   0 GNit50  nitro 5 l   1000   turbo +50 (max 100)
+//   1 GNit10  nitro 1 l    250   turbo +10 (max 100)
+//   2 GPak<n> upgrade n  15000/25000/35000 for stage 0/1/2 (none at 3)
+//   3 GRep10  repair 5 %   250   damage -5 (min 0)
+//   4 GRep50  repair 10 % 1000   damage -10 (min 0)
+// Buy (0x4bc06c) is enabled only when it changes something and the money
+// is there; it takes the money, applies the effect and refreshes.
 class Garage : public ErScreen {
  public:
-  Garage(Game& g, const std::string& cls) : ErScreen(g, cls), car_(*this) {
-    car_.prev = "ImgCarPrev", car_.cur = "ImgCarCur", car_.next = "ImgCarNext";
-    car_.name = "lblUpgradeCost", car_.info = "TxtInfo";
-    car_.btn_prev = "BtnCarPrev", car_.btn_next = "BtnCarNext";
-    struct Offer { const char* img; const char* text; };
-    const Offer offers[] = {{"GRep10", "LT_GRG_REPAIRSMALL"}, {"GRep50", "LT_GRG_REPAIRLARGE"},
-                            {"GNit10", "LT_GRG_NITROSMALL"}, {"GNit50", "LT_GRG_NITROLARGE"},
-                            {"GPak1", "LT_GRG_UPGRADE1"}};
-    int id = 0;
-    for (auto& o : offers) {
-      std::string t = game.texts(o.text);
-      for (size_t p; (p = t.find("%s")) != std::string::npos;) t.replace(p, 2, "?");
-      for (size_t p; (p = t.find("%%")) != std::string::npos;) t.replace(p, 2, "%");
-      car_.items.push_back({id++, o.img, "", t});
-    }
-    form.SetEnabled("BtnBuy", false);
+  Garage(Game& g, const std::string& cls) : ErScreen(g, cls) {}
+  // Properties panel 0x4b7ce4: the bars get the MensMal note's size and the
+  // note (ImgProperties) goes where the bars are.
+  void Layout() override {
+    ErScreen::Layout();
+    davi::Widget *mpb = form.Get("MpbCarProperties"), *img = form.Get("ImgProperties");
+    if (!mpb || !img || !app.skin.assets) return;
+    if (SDL_Surface* note = app.skin.assets->Bitmap("MensMal")) mpb->r.w = note->w, mpb->r.h = note->h;
+    img->r.x = mpb->r.x, img->r.y = mpb->r.y;
   }
   void OnShow() override {
     ErScreen::OnShow();
+    idx_ = 2;
     if (app.skin.assets) {
-      // The background has a 160x160 hole at ImgClub: the club photo goes
-      // there (CBLogo<n> is only 133x70 and leaves the hole black).
-      form.SetPicture("ImgClub", app.skin.assets->Bitmap(Fmt("cbimgcO%d", game.choices.club)));
-      int car = game.choices.game_type == "AD" ? game.choices.car : ClubCar(game, game.choices.ch_type);
-      form.SetPicture("ImgProperties", app.skin.assets->Bitmap(Fmt("car%.2da", car)));
+      form.SetPicture("LogoImage", app.skin.assets->Bitmap(Fmt("CBLogo%d", game.choices.club)));
+      int car = PlayerCar();
+      form.SetPicture("ImgClub", car >= 0 ? app.skin.assets->Bitmap(Fmt("car%.2da", car)) : nullptr);
+      form.SetPicture("ImgProperties", app.skin.assets->Bitmap("MensMal"));
     }
-    car_.Select(car_.index);
+    Refresh();
   }
   void OnClick(davi::Widget& w) override {
-    if (car_.Click(w)) return;
+    // The arrows run opposite to their names (0x4b8660 / 0x4b86e4).
+    if (Is(w, "BtnCarNext") || Is(w, "BtnCarPrev")) {
+      idx_ = (idx_ + (Is(w, "BtnCarNext") ? 4 : 1)) % 5;
+      game.Sound("SNDFX_PHOTO");
+      Refresh();
+      return;
+    }
+    if (Is(w, "BtnBuy")) {
+      Buy();
+      return;
+    }
     ErScreen::OnClick(w);
   }
   void PaintOver(SDL_Surface* canvas, int ox, int oy) override {
-    int car = game.choices.game_type == "AD" ? game.choices.car : ClubCar(game, game.choices.ch_type);
-    PaintBars(*this, game, game.data.CarById(car), 0, canvas, ox, oy);
+    davi::Widget* mpb = form.Get("MpbCarProperties");
+    ClubStats* st = Stats();
+    const Car* c = game.data.CarById(PlayerCar());
+    if (!mpb || !st || !app.skin.assets) return;
+    SDL_Surface* on = app.skin.assets->Bitmap("Stats1");
+    SDL_Surface* off = app.skin.assets->Bitmap("Stats0");
+    davi::Font* f = app.skin.GetFont(4);
+    int k = Class(), up = std::clamp(st->upgrade[k], 0, 3);
+    // 0x4b813c, all 7 rows (flag 0x7f), values 0..100.
+    struct Row {
+      const char* label;
+      int value;
+    };
+    auto prop = [&](int i) { return c && size_t(up * 4 + i) < c->props.size() ? c->props[up * 4 + i] : 0; };
+    const Row rows[] = {{"LT_CPROP_UPGRADE", up * 33},      {"LT_CPROP_SPEED", prop(0)}, {"LT_CPROP_ACCELERATION", prop(1)},
+                        {"LT_CPROP_GRIP", prop(2)},         {"LT_CPROP_STRENGTH", prop(3)},
+                        {"LT_CPROP_DAMAGE", st->damage[k]}, {"LT_CPROP_NITRO", st->turbo}};
+    for (int r = 0; r < 7; r++) {
+      int y = oy + mpb->r.y + 5 + r * 19;
+      if (f) f->DrawLine(canvas, ox + mpb->r.x + 5, y, game.texts(rows[r].label), 11, {0, 0, 0, 255});
+      int v = std::clamp(rows[r].value, 0, 100) / 10;
+      for (int i = 0; i < 10; i++)
+        if (SDL_Surface* b = i < v ? on : off) {
+          SDL_Rect d{ox + mpb->r.x + 95 + i * b->w, y, b->w, b->h};
+          SDL_BlitSurface(b, nullptr, canvas, &d);
+        }
+    }
   }
 
  private:
-  Carousel car_;
+  int Class() { return game.choices.game_type == "AD" ? AdClass() : std::clamp(game.choices.ch_type, 0, 2); }
+  int AdClass() {
+    const Car* c = game.data.CarById(game.choices.car);
+    return c && c->car_type == "CT_ATV" ? 1 : c && c->car_type == "CT_SPORT" ? 2 : 0;
+  }
+  int PlayerCar() { return game.choices.game_type == "AD" ? game.choices.car : ClubCar(game, Class()); }
+  ClubStats* Stats() {
+    League* l = game.CurrentLeague();
+    return l ? &l->clubs[std::clamp(l->player_club, 0, 7)] : nullptr;
+  }
+  int Price(int i) {  // 0x4a54fc
+    static const int kUpgrade[4] = {15000, 25000, 35000, 0};
+    static const int kPrice[5] = {1000, 250, 0, 250, 1000};
+    ClubStats* st = Stats();
+    return i == 2 ? kUpgrade[st ? std::clamp(st->upgrade[Class()], 0, 3) : 0] : kPrice[i];
+  }
+  bool CanBuy(int i) {  // 0x4bbed0
+    ClubStats* st = Stats();
+    if (!st || st->money < Price(i)) return false;
+    int k = Class();
+    if (i <= 1) return st->turbo < 100;
+    if (i == 2) return st->upgrade[k] != 3;
+    return st->damage[k] > 0;
+  }
+  void Buy() {
+    ClubStats* st = Stats();
+    if (!st || !CanBuy(idx_)) return;
+    game.Sound("SNDFX_OK");
+    int k = Class();
+    st->money -= Price(idx_);
+    switch (idx_) {
+      case 0: st->turbo = std::min(100, st->turbo + 50); break;
+      case 1: st->turbo = std::min(100, st->turbo + 10); break;
+      case 2: st->upgrade[k] = std::min(3, st->upgrade[k] + 1); break;
+      case 3: st->damage[k] = std::max(0, st->damage[k] - 5); break;
+      case 4: st->damage[k] = std::max(0, st->damage[k] - 10); break;
+    }
+    Refresh();
+  }
+  std::string Picture(int i) {
+    ClubStats* st = Stats();
+    static const char* kPics[5] = {"GNit50", "GNit10", "", "GRep10", "GRep50"};
+    return i == 2 ? Fmt("GPak%d", (st ? std::clamp(st->upgrade[Class()], 0, 3) : 0) + 1) : kPics[i];
+  }
+  void Refresh() {
+    ClubStats* st = Stats();
+    if (app.skin.assets) {
+      const char* slots[3] = {"ImgCarPrev", "ImgCarCur", "ImgCarNext"};
+      for (int s = 0; s < 3; s++) {
+        int i = (idx_ + s + 4) % 5;
+        form.SetPicture(slots[s], app.skin.assets->Bitmap(Picture(i)));
+        if (davi::Widget* w = form.Get(slots[s])) w->alpha = s == 1 ? 255 : 100;
+      }
+    }
+    // TxtInfo: the offer's text with price and money (0x4bc3d8).
+    static const char* kTexts[5] = {"LT_GRG_NITROLARGE", "LT_GRG_NITROSMALL", "", "LT_GRG_REPAIRSMALL", "LT_GRG_REPAIRLARGE"};
+    std::string t = idx_ == 2 ? game.texts(Fmt("LT_GRG_UPGRADE%d", (st ? std::clamp(st->upgrade[Class()], 0, 3) : 0) + 1))
+                              : game.texts(kTexts[idx_]);
+    std::string args[2] = {std::to_string(Price(idx_)), std::to_string(st ? st->money : 0)};
+    for (int a = 0; a < 2; a++)
+      if (size_t p = t.find("%s"); p != std::string::npos) t.replace(p, 2, args[a]);
+    for (size_t p; (p = t.find("%%")) != std::string::npos;) t.replace(p, 2, "%");
+    form.SetCaption("TxtInfo", t);
+    std::string euro = game.texts("LT_GRG_EURO");
+    if (size_t p = euro.find("%d"); p != std::string::npos) euro.replace(p, 2, std::to_string(Price(idx_)));
+    form.SetCaption("lblUpgradeCost", euro);
+    form.SetEnabled("BtnBuy", CanBuy(idx_));
+  }
+  int idx_ = 2;
 };
 
 }  // namespace

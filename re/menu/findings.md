@@ -70,3 +70,8 @@ Bron: stringvolgorde in GameMenu.dat (elke `SCORE_LAYOUT-x` staat direct na het 
 - Nog niet: Input, GFX OPTIONS, Resolution, DIRECTX, Sound (komen pas als Opties bewaard worden; tot dan blijven de templatewaarden staan).
 - QR_CHASE: de kwalificatiegrens op positie is 0 (de ini-waarden zijn tijden in ms op een ander veld), dus na de race kwalificeert alleen Position < 0. Wat de race bij een achtervolging als Position schrijft, is onbekend tot de race geport is.
 - Upgrades van tegenstanders (0x4bea24, na de rangschikking): trap k zodra de ronde >= pad[klasse*3+k-1]-1. De exacte indexering in 0x4bea24 is gelezen uit verminkte Ghidra-uitvoer; niet hard bewezen.
+
+## Garage (9 nov 2026, gebouwd)
+- Specificatie: `re/menu/garage_spec.md`. Vijf aanbiedingen, rondlopend, start op de upgrade: nitro 5 l (1000, turbo +50), nitro 1 l (250, +10), upgrade (15000/25000/35000, trap +1), reparatie 5 % (250), reparatie 10 % (1000). Kopen alleen als het iets doet en het geld er is; geen bevestiging.
+- Eigenschappenpaneel 0x4b7ce4: MpbCarProperties krijgt de maat van MensMal en ImgProperties (het briefje) komt op de plek van de balken; ImgClub = `car%.2da` van de clubauto. 7 rijen: upgrade/3, snelheid, acceleratie, grip, sterkte (op de huidige trap), schade, nitro.
+- Niet gebouwd: de waardetekst "%3d/%3d" naast de balken (plek onbekend).
