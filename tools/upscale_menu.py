@@ -99,6 +99,36 @@ def unpad(im, w, h):
     return im.crop((PAD * SCALE, PAD * SCALE, (PAD + w) * SCALE, (PAD + h) * SCALE))
 
 
+def load_tga32(b):
+    """Een 32-bit TGA (type 2 of 10) zoals de engine hem leest (tga.cpp):
+    de alpha-byte telt altijd. PIL negeert die als de header 0 alpha-bits
+    meldt (RadM/RadD/RadL, PrTab, zwart0), en juist daarin zit bij de
+    radioknoppen de cirkel. Anders None: dan leest PIL hem."""
+    if len(b) < 18 or b[1] != 0 or b[2] not in (2, 10) or b[16] != 32:
+        return None
+    w, h, desc = b[12] | b[13] << 8, b[14] | b[15] << 8, b[17]
+    n, p = w * h * 4, 18 + b[0]
+    if b[2] == 2:
+        pix = bytes(b[p:p + n])
+    else:
+        out = bytearray()
+        while len(out) < n and p < len(b):
+            hdr = b[p]
+            p += 1
+            k = (hdr & 0x7F) + 1
+            if hdr & 0x80:
+                out += b[p:p + 4] * k
+                p += 4
+            else:
+                out += b[p:p + 4 * k]
+                p += 4 * k
+        pix = bytes(out[:n])
+    if len(pix) < n:
+        return None
+    im = Image.frombytes("RGBA", (w, h), pix, "raw", "BGRA")
+    return im if desc & 0x20 else im.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+
+
 def jobs(game_dir):
     """(naam, uitvoer, rgb, alpha of None) per te maken PNG."""
     items = list(archive(os.path.join(game_dir, "Menu")))
@@ -113,8 +143,10 @@ def jobs(game_dir):
         if not (low.endswith(".tga") or low.endswith(".bmp")) or not data:
             continue
         try:
-            im = Image.open(io.BytesIO(data))
-            im.load()
+            im = load_tga32(data) if low.endswith(".tga") else None
+            if im is None:
+                im = Image.open(io.BytesIO(data))
+                im.load()
         except Exception:
             continue
         if low.endswith(".tga"):
