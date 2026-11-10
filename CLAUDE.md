@@ -50,7 +50,7 @@ Bij elke nieuwe functie: vraag eerst in welke laag hij hoort.
 - Geluid: Miles via SwARc's eigen `mss32.cpp` (39 van de 51 functies waren er al; de 12 andere, o.a. mp3 via `AIL_decompress_ASI`/`AIL_set_named_sample_file`, toegevoegd op branch `er`). Doppler en filters doen niets.
 - Beeld: eigen 4:3-rendermaat op schermresolutie (`src/game/gfx_resolution.cpp`, vervangt 0x503AB0; modustabel 0x61F3E0 gelijk aan A2), 4x MSAA, 16x AF, F9/F10/F11. HD-textures: `tools/make_texture_pack.py` (4xNomos8kSC, `build/texture_pack`; textures in `res/rcs.IMG` met zlib; de 384x256-autobladen laadt de game heel en als linker vierkant van 256; hashes gecontroleerd met `ERACER_TEX_DUMP`, 48 van 48). Menu in 4K: `tools/upscale_menu.py` (realesrgan-x4plus, `mods/menu/local/hd`).
 - **Stil en in een tijdelijke map testen**: `XDG_DATA_HOME=<scratch>` (anders schrijft de race in `~/Library/Application Support/eracer`), `SDL_AUDIO_DRIVER=dummy ERACER_BACKGROUND=1 ERACER_WINDOW=-9000,-9000,800,600`, invoer met `ERACER_TEST_INPUT=file` (`6 key Up 4`, `11 key Escape`, `11 close`), shots met `ERACER_SHOT_EVERY=N ERACER_SHOT_DIR=map`. `ERACER_TRACE=1` altijd door grep.
-- Venster van de race dicht = hele spel dicht (afspraak voor alle drie de games, SwARc fdc7478 + gedeelde menu-engine). Esc + J in de race geeft een nette exit 0; via het menu meldt RunChild -1 omdat het menu de race na zijn "exit"-melding beëindigt.
+- Venster van de race dicht = hele spel dicht (afspraak voor alle drie de games, SwARc 4bf1f99 + gedeelde menu-engine). Esc + J in de race geeft een nette exit 0; via het menu meldt RunChild -1 omdat het menu de race na zijn "exit"-melding beëindigt.
 
 ## Wat er is
 - `Disc/` - de twee zips zoals gedownload (ISO-versie + Patch 3). Bron, niet aankomen.
