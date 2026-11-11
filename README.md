@@ -8,7 +8,7 @@
 > **De game zelf zit niet in deze repo, alleen de port.** Je hebt twee downloads van [MyAbandonware](https://www.myabandonware.com/game/europe-racing-gsh) nodig: de ISO-versie (`Europe-Racing_Win_EN-FR-DE-ES-IT-NL_ISO-Version.zip`) voor de spelbestanden en de officiële NoCD van Davilex (`Europe-Racing_NoCD_Win_EN-FR-DE-ES-IT-NL.zip`, 15 juni 2002). Die NoCD is de laatste versie van de game (Patch 3) zonder SafeDisc-beveiliging; de port is daarop gebouwd.
 
 > [!WARNING]
-> **Nog in ontwikkeling.** Er is nog geen `setup.sh` en geen HD-pack om te downloaden, zoals bij [A2 Racer IV Revived](https://github.com/DvT093/A2RacerIV-Revived) en [Vakantie Racer Revived](https://github.com/DvT093/VakantieRacer-Revived). Zelf bouwen kan nu alleen met een eigen Ghidra-export van de exe (zie "Bouwen").
+> **Nog in ontwikkeling.** Er is nog geen `setup.sh`, zoals bij [A2 Racer IV Revived](https://github.com/DvT093/A2RacerIV-Revived) en [Vakantie Racer Revived](https://github.com/DvT093/VakantieRacer-Revived). Zelf bouwen kan nu alleen met een eigen Ghidra-export van de exe (zie "Bouwen").
 
 ![Het hoofdmenu in 4K](docs/screenshots/menu-hoofdmenu-4k.jpg)
 
@@ -57,7 +57,7 @@ Daarna, in `Europe Racer`:
 3. `cmake --preset release`, `./lift.sh`, dan `cmake --build --preset release --target eracer eracer-menu`.
 4. Starten: `out/build/release/eracer-menu --game-dir iso/EuropeRacer`.
 
-HD maken: `tools/make_texture_pack.py` (race) en `tools/upscale_menu.py` (menu), allebei met Real-ESRGAN. Het menu gebruikt de HD-plaatjes met `--mods mods/menu`.
+HD: download `europeracer-hd-v1.zip` bij de [release hd-v1](https://github.com/DvT093/EuropeRacer-Revived/releases/tag/hd-v1) en pak hem uit in `Europe Racer` (`unzip -o europeracer-hd-v1.zip`). Zelf maken kan ook: `tools/make_texture_pack.py` (race) en `tools/upscale_menu.py` (menu), allebei met Real-ESRGAN. Het menu gebruikt de HD-plaatjes met `--mods mods/menu`.
 
 ## Toetsen in de race
 
@@ -92,7 +92,7 @@ No Wine, no emulator: the game code is recompiled into a real Mac app.
 > **The game itself is not in this repo, only the port.** You need two downloads from [MyAbandonware](https://www.myabandonware.com/game/europe-racing-gsh): the ISO version (`Europe-Racing_Win_EN-FR-DE-ES-IT-NL_ISO-Version.zip`) for the game files, and Davilex' official NoCD (`Europe-Racing_NoCD_Win_EN-FR-DE-ES-IT-NL.zip`, 15 June 2002). That NoCD is the last version of the game (Patch 3) without SafeDisc protection; the port is built on it.
 
 > [!WARNING]
-> **Work in progress.** There is no `setup.sh` and no HD pack to download yet, unlike [A2 Racer IV Revived](https://github.com/DvT093/A2RacerIV-Revived) and [Vakantie Racer Revived](https://github.com/DvT093/VakantieRacer-Revived). Building it yourself currently needs your own Ghidra export of the exe (see "Build").
+> **Work in progress.** There is no `setup.sh` yet, unlike [A2 Racer IV Revived](https://github.com/DvT093/A2RacerIV-Revived) and [Vakantie Racer Revived](https://github.com/DvT093/VakantieRacer-Revived). Building it yourself currently needs your own Ghidra export of the exe (see "Build").
 
 This repo contains **no game files**: no ISO, no exe, no pictures or sound. The menu and the race read everything at startup from the CD files you put in place.
 
@@ -118,7 +118,7 @@ Then, in `Europe Racer`:
 3. `cmake --preset release`, `./lift.sh`, then `cmake --build --preset release --target eracer eracer-menu`.
 4. Run: `out/build/release/eracer-menu --game-dir iso/EuropeRacer`.
 
-HD: `tools/make_texture_pack.py` (race) and `tools/upscale_menu.py` (menu), both with Real-ESRGAN. The menu uses the HD pictures with `--mods mods/menu`.
+HD: download `europeracer-hd-v1.zip` from the [hd-v1 release](https://github.com/DvT093/EuropeRacer-Revived/releases/tag/hd-v1) and unzip it in `Europe Racer` (`unzip -o europeracer-hd-v1.zip`). To make it yourself: `tools/make_texture_pack.py` (race) and `tools/upscale_menu.py` (menu), both with Real-ESRGAN. The menu uses the HD pictures with `--mods mods/menu`.
 
 ## Keys in the race
 Arrows steer and drive, **Esc** = pause with the question whether to quit, **F9** = original or HD, **F10/F11** = anti-aliasing / filtering only.
