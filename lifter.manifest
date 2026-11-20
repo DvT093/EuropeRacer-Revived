@@ -58,3 +58,5 @@ entry 0051408B
 entry 0052408B
 entry 005242B7
 entry 005AC8CA
+
+replace 0050B3E0  # handle_mouse: stil zonder muis bij afsluiten (src/game/mouse_quit.cpp)
