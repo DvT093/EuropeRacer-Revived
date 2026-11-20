@@ -133,6 +133,10 @@ int main(int argc, char** argv) {
   game.id = "eracer";
   game.guest_dir = "C:\\Europe Racer\\Game";
   game.exe_name = "spel.exe";
+  // The race overflowed Windows' 1 MiB main stack after about a minute
+  // (20 nov 2026, AI waypoint search, right after the window changed
+  // Spaces): give it room.
+  game.main_stack_size = 16ull << 20;
   // The disc (volume label ER) is the folder above EuropeRacer/.
   std::string cd_dir = fs::path(game_dir).parent_path().parent_path().string();
   game.cd_drives = {{'D', cd_dir, "ER"}};
