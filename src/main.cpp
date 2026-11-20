@@ -15,6 +15,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <strings.h>
+#include <unistd.h>
+
+#include <chrono>
+#include <thread>
 #include <filesystem>
 #include <string>
 
@@ -178,5 +182,20 @@ int main(int argc, char** argv) {
   // on (F9). ERACER_TEX_PACK=dir overrides the place.
   game.gfx.replace_textures = true;
   if (!root.empty() && stat((root + "/build/texture_pack").c_str(), &st) == 0) game.texture_pack = root + "/build/texture_pack";
+  // Started by the menu (it hands over its window through the link): when
+  // the menu goes away, also when it is force quit, the race goes too. A
+  // hung race would otherwise keep running unseen, its music playing.
+  if (std::getenv("ERACER_LINK_FD")) {
+    pid_t parent = getppid();
+    std::thread([parent] {
+      for (;;) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        if (getppid() != parent) {
+          std::fprintf(stderr, "eracer: the menu is gone, quitting\n");
+          _exit(0);
+        }
+      }
+    }).detach();
+  }
   return recomp::RunProcess(game, exe, game_dir, game_args);
 }
