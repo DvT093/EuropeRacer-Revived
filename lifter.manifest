@@ -2,3 +2,59 @@
 setjmp 005B4034 __setjmp3
 resume 005B4125  # _longjmp: jmp [jmp_buf.eip] naar het setjmp-terugkeerpunt
 replace 00503AB0  # mode select: own 4:3 render size (src/game/gfx_resolution.cpp)
+
+# MSVC C++ EH: _JumpToContinuation (005B0C4E) zet esp/ebp van het frame terug en springt
+# naar het adres na het catch-blok. Zonder resume liep die sprong als gewone aanroep terug
+# de foutafhandeling in (crash Moskou, 20 nov 2026). Doelen: tools/cxx_continuations.py.
+resume 005B0C79  # _JumpToContinuation: jmp eax
+entry 0040192A
+entry 0041999B
+entry 00419E22
+entry 00449A2F
+entry 00449DD8
+entry 00483B71
+entry 0048C56D
+entry 004A06A1
+entry 004A48B3
+entry 004AB309
+entry 004AC232
+entry 004ACA28
+entry 004ADF34
+entry 004AE714
+entry 004AEA03
+entry 004AF58D
+entry 004AF65A
+entry 004AF80F
+entry 004B0B84
+entry 004B1554
+entry 004B1780
+entry 004B24E4
+entry 004B2AD2
+entry 004B3252
+entry 004BC944
+entry 004BD770
+entry 004BE31D
+entry 004BE574
+entry 004BE9F8
+entry 004BEB01
+entry 004BF679
+entry 004C01F1
+entry 004C3900
+entry 004C5BF5
+entry 004C5E16
+entry 004C5FE6
+entry 004C61B6
+entry 004C6386
+entry 004C6556
+entry 004C6732
+entry 00510A59
+entry 00510C38
+entry 00510D97
+entry 00510E7D
+entry 0051112E
+entry 00511680
+entry 00513EF2
+entry 0051408B
+entry 0052408B
+entry 005242B7
+entry 005AC8CA
