@@ -69,6 +69,7 @@ Bron: stringvolgorde in GameMenu.dat (elke `SCORE_LAYOUT-x` staat direct na het 
 - Gebouwd in `er/gameini.cpp`: PLAYER/ETAPPE/UPGRADES, NrOpponents per racetype {4,1,0,4,4,0}, RACERS `auto,startplek,0` + `country0i` + `Racer%d`, race-opties, cops, verkeer, bonussen, GameSim Qualify. Geschreven bij het tonen van TFrmRace naar de overlay (`$XDG_DATA_HOME/eracer/install/Ini/game.ini`, gedeelde `red::Install`).
 - Nog niet: Input, GFX OPTIONS, Resolution, DIRECTX, Sound (komen pas als Opties bewaard worden; tot dan blijven de templatewaarden staan).
 - QR_CHASE: de kwalificatiegrens op positie is 0 (de ini-waarden zijn tijden in ms op een ander veld), dus na de race kwalificeert alleen Position < 0. Wat de race bij een achtervolging als Position schrijft, is onbekend tot de race geport is.
+- Opgelost 20 nov 2026: de geporte race schrijft bij een chase `Position=0`, `TrackTime` en `out_of_time`. Het menu beoordeelt een chase nu op tijd: gefinisht, `out_of_time=0` en TrackTime <= Qualify-<moeilijkheid> x 1000 (`Game::AfterRace`, `er/game.cpp`). Getest met de echte GAME.INI van Parijs (3:13 tegen 4:30): "Je bent de winnaar", door naar Marseille.
 - Upgrades van tegenstanders (0x4bea24, na de rangschikking): trap k zodra de ronde >= pad[klasse*3+k-1]-1. De exacte indexering in 0x4bea24 is gelezen uit verminkte Ghidra-uitvoer; niet hard bewezen.
 
 ## Garage (9 nov 2026, gebouwd)

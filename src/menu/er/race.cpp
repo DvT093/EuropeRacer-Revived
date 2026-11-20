@@ -17,6 +17,7 @@ bool RaceResult::Load(const davi::IniFile& ini) {
   finished = ini.GetInt("PLAYER", "Finished", 0) != 0;
   position = ini.GetInt("PLAYER", "Position", -1);
   tracktime = ini.GetInt("PLAYER", "TrackTime", 0);
+  out_of_time = ini.GetInt("PLAYER", "out_of_time", 0) != 0;
   int laps = ini.GetInt("PLAYER", "lapcount", 0);
   for (int i = 1; i <= laps; i++) {
     char k[32];

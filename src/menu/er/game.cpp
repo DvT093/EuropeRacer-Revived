@@ -351,10 +351,16 @@ void Game::AfterRace() {
   }
   const RaceEntry* e = CurrentRace();
   int d = std::clamp(choices.difficulty, 0, 2);
-  // QR_CHASE rows keep Qualify as milliseconds elsewhere (parser 0x4792ac);
-  // their position limit is 0, so 0x494218 only qualifies Position < 0.
-  int limit = e ? (e->race_type == "QR_CHASE" ? 0 : e->qualify[d]) : 0;
-  bool qualified = e && race.position < limit;
+  // QR_CHASE: Qualify is a time in seconds (also written to the race as
+  // [GameSim] Qualify). The original's position limit there is 0, so
+  // 0x494218 only qualifies Position < 0, which the ported race never
+  // writes (it writes Position 0 and the time). Judge a chase on the time:
+  // finished in time and under Qualify-<difficulty>.
+  bool qualified = false;
+  if (e && e->race_type == "QR_CHASE")
+    qualified = !race.out_of_time && race.tracktime > 0 && race.tracktime <= e->qualify[d] * 1000;
+  else if (e)
+    qualified = race.position < e->qualify[d];
   int races = LeagueRaces();
   bool last = CurrentLeague()->round + 1 >= races;
   if (!qualified) Go(p + "DISQUALIFIED");

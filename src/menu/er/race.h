@@ -27,6 +27,7 @@ struct RaceResult {
   bool finished = false;  // [PLAYER] Finished
   int position = -1;      // [PLAYER] Position, zero based
   int tracktime = 0;      // [PLAYER] TrackTime (ms)
+  bool out_of_time = false;  // [PLAYER] out_of_time (a chase ran out of time)
   int best_lap = 0x7fffffff;  // the lowest of lap_1_time..lap_<lapcount>_time
   int turbo = 0, damage = 0, money = 0, upgrades = 0;
   std::vector<RacerResult> racers;  // [OPTIONS] NrOpponents of them (max 4)
