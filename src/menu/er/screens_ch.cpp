@@ -48,11 +48,17 @@ class PlayMovie : public ErScreen {
       app.After(0, [this] { Done(); }, this);
       return;
     }
+    // The menu music stops while a movie plays (it has its own sound) and
+    // starts again after it.
+    app.audio.StopMusic();
+    music_stopped_ = true;
     app.audio.Pause(false);
   }
   void OnHide() override {
     movie_.Close();
     app.CancelTimers(this);
+    if (music_stopped_) game.PlayMusic("SNDCB_NORMAL");
+    music_stopped_ = false;
   }
   void Update(double) override {
     if (movie_.IsOpen() && !movie_.Update()) Done();
@@ -80,6 +86,7 @@ class PlayMovie : public ErScreen {
   }
   davi::Video movie_;
   bool done_ = false;
+  bool music_stopped_ = false;
 };
 
 // TFrmCHSelectType 0x4c04d4: standard, ATV or sport championship, info texts 0xe3-0xe5.
@@ -287,13 +294,18 @@ class Garage : public ErScreen {
     const Row rows[] = {{"LT_CPROP_UPGRADE", up * 33},      {"LT_CPROP_SPEED", prop(0)}, {"LT_CPROP_ACCELERATION", prop(1)},
                         {"LT_CPROP_GRIP", prop(2)},         {"LT_CPROP_STRENGTH", prop(3)},
                         {"LT_CPROP_DAMAGE", st->damage[k]}, {"LT_CPROP_NITRO", st->turbo}};
+    // The note (MensMal) lies at the panel's corner: a board frame of about
+    // 9 px with pins in the corners. Rows start inside the paper, below the
+    // top pins (measured on MensMal; the original's own margins are not
+    // decompiled).
+    const int left = 20, top = 16;
     for (int r = 0; r < 7; r++) {
-      int y = oy + mpb->r.y + 5 + r * 19;
-      if (f) f->DrawLine(canvas, ox + mpb->r.x + 5, y, game.texts(rows[r].label), 11, {0, 0, 0, 255});
+      int y = oy + mpb->r.y + top + r * 19;
+      if (f) f->DrawLine(canvas, ox + mpb->r.x + left, y, game.texts(rows[r].label), 11, {0, 0, 0, 255});
       int v = std::clamp(rows[r].value, 0, 100) / 10;
       for (int i = 0; i < 10; i++)
         if (SDL_Surface* b = i < v ? on : off) {
-          SDL_Rect d{ox + mpb->r.x + 95 + i * b->w, y, b->w, b->h};
+          SDL_Rect d{ox + mpb->r.x + left + 95 + i * b->w, y, b->w, b->h};
           SDL_BlitSurface(b, nullptr, canvas, &d);
         }
     }
