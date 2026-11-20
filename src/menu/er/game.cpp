@@ -351,14 +351,18 @@ void Game::AfterRace() {
   }
   const RaceEntry* e = CurrentRace();
   int d = std::clamp(choices.difficulty, 0, 2);
-  // QR_CHASE: Qualify is a time in seconds (also written to the race as
-  // [GameSim] Qualify). The original's position limit there is 0, so
-  // 0x494218 only qualifies Position < 0, which the ported race never
-  // writes (it writes Position 0 and the time). Judge a chase on the time:
-  // finished in time and under Qualify-<difficulty>.
+  // QR_CHASE: the original's position limit there is 0, so 0x494218 only
+  // qualifies Position < 0, which the ported race never writes (it writes
+  // Position 0, the time and out_of_time). The race itself runs the clock
+  // ([PLAYER] etappe<nn>_ChaseTime_<mode><difficulty> in game.ini, e.g.
+  // Paris AD normal 5:50). When it runs out the race shows "Race over /
+  // Tijd is om!" and leaves Finished 0 (tested 20 nov 2026 with a 10 s
+  // clock); out_of_time is only in the template. The menu's Qualify
+  // seconds (4:30 there) are not what the player sees. So a finished
+  // chase is a won chase.
   bool qualified = false;
   if (e && e->race_type == "QR_CHASE")
-    qualified = !race.out_of_time && race.tracktime > 0 && race.tracktime <= e->qualify[d] * 1000;
+    qualified = !race.out_of_time && race.tracktime > 0;
   else if (e)
     qualified = race.position < e->qualify[d];
   int races = LeagueRaces();
